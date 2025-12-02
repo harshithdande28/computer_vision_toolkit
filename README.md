@@ -4,22 +4,23 @@ A comprehensive Flask-based web application covering multiple computer vision mo
 
 ## 🎯 Features
 
-| Module | Description |
-|--------|-------------|
-| **Module 1** | Camera Calibration & Perspective Projection |
-| **Module 2** | Gaussian Blur & Fourier Transform |
+| Module       | Description                                         |
+| ------------ | --------------------------------------------------- |
+| **Module 1** | Camera Calibration & Perspective Projection         |
+| **Module 2** | Gaussian Blur & Fourier Transform                   |
 | **Module 3** | Edge Detection, Corner Detection, Template Matching |
-| **Module 4** | Image Stitching (Panorama) & SIFT Feature Matching |
-| **Module 5** | Object Tracking (Marker, Markerless, SAM2) |
-| **Module 6** | ArUco-Based Object Segmentation |
-| **Module 7** | Stereo Vision & Size Estimation |
-| **Module 8** | Real-Time Pose & Hand Tracking (MediaPipe) |
+| **Module 4** | Image Stitching (Panorama) & SIFT Feature Matching  |
+| **Module 5** | Object Tracking (Marker, Markerless, SAM2)          |
+| **Module 6** | ArUco-Based Object Segmentation                     |
+| **Module 7** | Stereo Vision & Size Estimation                     |
+| **Module 8** | Real-Time Pose & Hand Tracking (MediaPipe)          |
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - **Python 3.11** (Required for MediaPipe and SAM2 compatibility)
 - Git
 - Webcam (for real-time tracking modules)
@@ -54,6 +55,7 @@ python app.py
 ```
 
 ### Open in Browser
+
 ```
 http://127.0.0.1:5000
 ```
@@ -63,6 +65,7 @@ http://127.0.0.1:5000
 ## 📦 Dependencies
 
 ### Core Requirements
+
 ```
 flask
 opencv-python
@@ -72,11 +75,13 @@ scipy
 ```
 
 ### For Pose & Hand Tracking (Module 8)
+
 ```
 mediapipe
 ```
 
 ### For SAM2 Segmentation (Module 5 & 6)
+
 ```
 torch
 torchvision
@@ -84,6 +89,7 @@ segment-anything-2  # Install from: pip install git+https://github.com/facebookr
 ```
 
 ### Install All at Once
+
 ```bash
 pip install flask opencv-python opencv-contrib-python numpy scipy mediapipe
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -132,16 +138,19 @@ camera_calibration_app/
 ## 🔧 Module Details
 
 ### Module 1: Camera Calibration
+
 - Upload chessboard images (7x6 pattern)
 - Extracts intrinsic parameters (Fx, Fy, Ox, Oy)
 - Perspective projection demo
 
 ### Module 2: Gaussian Blur & Fourier Transform
+
 - Applies Gaussian blur to images
 - Performs Wiener deconvolution to restore images
 - Visualizes frequency domain
 
 ### Module 3: Image Processing
+
 - **Gradient & LoG**: Sobel gradients, Laplacian of Gaussian
 - **Edge Detection**: Manual double threshold edge detection
 - **Corner Detection**: Harris corner detector (manual implementation)
@@ -149,20 +158,24 @@ camera_calibration_app/
 - **Boundary Detection**: Interactive ROI-based boundary detection
 
 ### Module 4: Feature Matching & Stitching
+
 - **Image Stitching**: Create panoramas from multiple images
 - **SIFT Matching**: From-scratch SIFT with RANSAC homography
 
 ### Module 5: Object Tracking
+
 - **Marker-based**: ArUco marker detection and tracking
 - **Markerless**: CSRT tracker with ROI selection
 - **SAM2**: AI-based video object segmentation
 
 ### Module 6: ArUco Segmentation
+
 - Non-rectangular object segmentation
 - Place ArUco markers on object boundary
 - Compares with SAM2 segmentation (IoU score)
 
 ### Module 7: Stereo Vision
+
 - Stereo camera calibration
 - Disparity map generation
 - 3D object size estimation
@@ -175,14 +188,17 @@ camera_calibration_app/
 ## 🎥 Sample Data
 
 ### For SAM2 (Module 5)
+
 Place a video file at: `static/sam2/car_video.mp4`
 
 ### For ArUco Segmentation (Module 6)
+
 - Print ArUco markers (DICT_4X4_50, IDs 0-49)
 - Place markers around object boundary
 - Capture 10+ images from various angles
 
 ### For Stereo Calibration (Module 7)
+
 - Capture stereo image pairs with chessboard pattern
 - Upload left and right images separately
 
@@ -191,6 +207,7 @@ Place a video file at: `static/sam2/car_video.mp4`
 ## ⚠️ Troubleshooting
 
 ### MediaPipe not working
+
 ```bash
 # Ensure Python 3.11 (not 3.13)
 python --version  # Should show 3.11.x
@@ -198,6 +215,7 @@ pip install mediapipe
 ```
 
 ### SAM2 not loading
+
 ```bash
 # Verify checkpoint exists
 dir sam2_checkpoints\sam2_hiera_tiny.pt
@@ -207,6 +225,7 @@ pip install git+https://github.com/facebookresearch/segment-anything-2.git
 ```
 
 ### Webcam not detected
+
 - Check camera permissions in Windows Settings
 - Try a different USB port
 - Verify with: `python -c "import cv2; print(cv2.VideoCapture(0).isOpened())"`
@@ -221,6 +240,4 @@ This project is for educational purposes.
 
 ## 👨‍💻 Author
 
-Computer Vision Course Project
-
-
+Lourdu Gnana Harshith Dande
