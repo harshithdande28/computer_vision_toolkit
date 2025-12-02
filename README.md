@@ -166,8 +166,6 @@ camera_calibration_app/
 - Stereo camera calibration
 - Disparity map generation
 - 3D object size estimation
-
-### Module 8: Pose & Hand Tracking
 - Real-time body pose detection (33 landmarks)
 - Hand tracking (21 landmarks per hand)
 - CSV data export for analysis
