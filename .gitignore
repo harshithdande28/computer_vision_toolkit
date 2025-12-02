@@ -1,4 +1,4 @@
-# Virtual environment
+# Virtual environment (recreate with: pip install -r requirements.txt)
 venv/
 env/
 .venv/
@@ -9,16 +9,7 @@ __pycache__/
 *$py.class
 *.so
 
-# SAM2 checkpoints (too large for GitHub)
-sam2_checkpoints/
-*.pt
-*.pth
-
-# Uploaded files
-uploads/
-*.csv
-
-# IDE
+# IDE settings
 .vscode/
 .idea/
 *.swp
@@ -30,9 +21,3 @@ Thumbs.db
 
 # Logs
 *.log
-
-# Build
-dist/
-build/
-*.egg-info/
-
