@@ -82,6 +82,24 @@
       <h1>Computer Vision Toolkit</h1>
     </header>
 
+    <!-- Cloud Mode Banner -->
+    <div id="cloud-banner" style="display:none; background:#ff9800; color:white; padding:10px; text-align:center;">
+      ☁️ <strong>Cloud Mode:</strong> Webcam features (Marker/Markerless tracking, Pose tracking) require local deployment. 
+      <a href="https://github.com/YOUR_USERNAME/computer_vision_toolkit" style="color:white;">Clone & run locally</a> for full features.
+    </div>
+
+    <script>
+      // Check if running on cloud and show banner
+      fetch('/api/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.is_cloud) {
+            document.getElementById('cloud-banner').style.display = 'block';
+          }
+        })
+        .catch(() => {});
+    </script>
+
     <div class="container">
       <h2>Select a Module</h2>
 

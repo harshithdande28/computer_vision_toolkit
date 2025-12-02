@@ -1,7 +1,8 @@
-# Virtual environment (recreate with: pip install -r requirements.txt)
+# Virtual environment
 venv/
 env/
 .venv/
+ENV/
 
 # Python cache
 __pycache__/
@@ -9,15 +10,49 @@ __pycache__/
 *$py.class
 *.so
 
-# IDE settings
+# SAM2 model checkpoints (too large for git - download separately if needed)
+sam2_checkpoints/
+*.pt
+*.pth
+*.onnx
+
+# Uploads folder (user-generated content)
+uploads/
+!uploads/.gitkeep
+
+# Static generated files
+static/sam2/masks.npz
+static/aruco_results/*.png
+
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Environment variables
+.env
+.env.local
+.env.production
 
 # Logs
 *.log
+logs/
+
+# Calibration outputs
+stereo_params.npz
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/

@@ -143,7 +143,23 @@
   <body>
     <header>Real-Time Pose & Hand Tracking (MediaPipe)</header>
 
-    <div class="container">
+    <!-- Cloud Mode Warning -->
+    <div id="cloud-warning" class="container" style="display:none; background:#ff5252; color:white;">
+      <h2>⚠️ Webcam Not Available</h2>
+      <p>Pose & Hand Tracking requires a webcam and MediaPipe, which only work when running locally.</p>
+      <p><strong>To use this feature:</strong></p>
+      <ol style="text-align:left; display:inline-block;">
+        <li>Clone/download the repository</li>
+        <li>Install dependencies: <code>pip install -r requirements.txt</code></li>
+        <li>Install MediaPipe: <code>pip install mediapipe</code></li>
+        <li>Run <code>python app.py</code></li>
+        <li>Open <code>http://localhost:5000</code></li>
+      </ol>
+      <br>
+      <a href="/" style="background:white; color:#ff5252; padding:14px 32px; border-radius:8px; text-decoration:none; font-weight:600;">⬅ Back to Home</a>
+    </div>
+
+    <div class="container" id="main-content">
       <h2>Live Pose & Hand Landmarks</h2>
       <p>
         Stand in front of the webcam and move your body and hands. Landmarks
@@ -230,6 +246,17 @@
     </div>
 
     <script>
+      // Check for cloud mode first
+      fetch('/api/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.is_cloud || !data.mediapipe_available) {
+            document.getElementById('cloud-warning').style.display = 'block';
+            document.getElementById('main-content').style.display = 'none';
+          }
+        })
+        .catch(() => {});
+
       const videoFeed = document.getElementById("videoFeed");
       const placeholder = document.getElementById("placeholder");
       const startBtn = document.getElementById("startBtn");

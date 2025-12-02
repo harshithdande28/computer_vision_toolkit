@@ -1,10 +1,14 @@
 services:
   - type: web
-    name: camera-calibration-app
-    env: python
+    name: computer-vision-toolkit
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 2
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
-
+        value: "3.11.0"
+      - key: OPENCV_IO_ENABLE_OPENEXR
+        value: "false"
+    healthCheckPath: /
+    autoDeploy: true
+    plan: free

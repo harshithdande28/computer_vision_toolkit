@@ -1,14 +1,19 @@
-# Core dependencies
+# Core Flask dependencies
 flask>=3.0.0
-numpy>=1.24.0
-opencv-python-headless>=4.8.0
-scipy>=1.11.0
 werkzeug>=3.0.0
 gunicorn>=21.0.0
 
-# For Pose & Hand Tracking (Module 8) - works locally only
-# mediapipe>=0.10.0
+# Computer Vision & Image Processing
+numpy>=1.24.0,<2.0.0
+opencv-python-headless>=4.8.0
+scipy>=1.11.0
 
-# For SAM2 (install separately - works locally only):
-# pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-# pip install git+https://github.com/facebookresearch/segment-anything-2.git
+# Note: The following are NOT included for cloud deployment due to size/compatibility:
+# - mediapipe: Requires Python 3.8-3.12, large binary, webcam features won't work on cloud anyway
+# - torch/torchvision: Very large (~2GB), SAM2 not practical for free tier hosting
+# - sam2: Requires torch, large model files
+
+# These features will gracefully fallback or show "not available" messages on cloud:
+# - Pose & Hand Tracking (MediaPipe) - works locally only
+# - SAM2 Segmentation - uses GrabCut fallback on cloud
+# - Webcam-based tracking - requires local deployment

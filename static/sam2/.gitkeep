@@ -1,4 +1,2 @@
-# SAM2 Video and Masks
-# Place car_video.mp4 here for SAM2 demo
-
-
+# This file ensures the static/sam2 directory exists
+# Video files and generated masks are ignored via .gitignore

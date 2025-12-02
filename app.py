@@ -11,6 +11,17 @@ import sys
 import os
 from flask import request, render_template
 from werkzeug.utils import secure_filename
+
+# ============= Cloud Deployment Detection =============
+# Detect if running on cloud (Render, Heroku, Railway, etc.)
+IS_CLOUD = bool(os.environ.get('RENDER') or 
+                os.environ.get('DYNO') or 
+                os.environ.get('RAILWAY_ENVIRONMENT') or
+                os.environ.get('PORT'))
+if IS_CLOUD:
+    print("☁️  Running in CLOUD mode - webcam features disabled")
+else:
+    print("💻 Running in LOCAL mode - all features available")
 try:
     import mediapipe as mp  # type: ignore
     MEDIAPIPE_AVAILABLE = True
@@ -71,6 +82,17 @@ Fx, Fy, Ox, Oy = None, None, None, None
 @app.route("/")
 def index():
     return render_template("home.html")
+
+# API to check deployment status
+@app.route("/api/status")
+def api_status():
+    return jsonify({
+        "is_cloud": IS_CLOUD,
+        "mediapipe_available": MEDIAPIPE_AVAILABLE,
+        "sam2_available": SAM2_AVAILABLE,
+        "webcam_available": not IS_CLOUD,
+        "message": "Cloud deployment - some features disabled" if IS_CLOUD else "Local deployment - all features available"
+    })
 
 # added a new route for prespective projection
 @app.route("/perspective_projection")
@@ -1512,6 +1534,8 @@ def pose_hand_tracking():
 
 @app.route("/video_feed_pose_hand")
 def video_feed_pose_hand():
+    if IS_CLOUD:
+        return jsonify({"error": "Webcam features require local deployment. Run 'python app.py' on your computer."}), 503
     return Response(
         gen_frames(process_type="pose_hand"),
         mimetype="multipart/x-mixed-replace; boundary=frame"
@@ -1543,11 +1567,15 @@ def clear_pose_data():
 
 @app.route("/video_feed_marker")
 def video_feed_marker():
+    if IS_CLOUD:
+        return jsonify({"error": "Webcam features require local deployment. Run 'python app.py' on your computer."}), 503
     return Response(gen_frames(process_type="marker"),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
 
 @app.route("/video_feed_markerless")
 def video_feed_markerless():
+    if IS_CLOUD:
+        return jsonify({"error": "Webcam features require local deployment. Run 'python app.py' on your computer."}), 503
     return Response(gen_frames(process_type="markerless"),
                     mimetype="multipart/x-mixed-replace; boundary=frame")
 
