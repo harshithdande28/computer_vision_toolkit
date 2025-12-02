@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stereo Size Estimation</title>
+
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+        font-size: 24px;
+      }
+
+      .card {
+        margin: 40px auto;
+        width: 60%;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      input[type="file"] {
+        padding: 10px;
+        margin: 10px;
+        width: 70%;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+
+      button {
+        padding: 12px 25px;
+        margin-top: 20px;
+        font-size: 17px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+
+      hr {
+        margin: 40px auto;
+        width: 70%;
+        border: 1px solid #ddd;
+      }
+
+      #canvas {
+        border: 3px solid #004aad;
+        border-radius: 10px;
+        margin-top: 15px;
+        cursor: crosshair;
+        max-width: 90%;
+      }
+
+      img {
+        max-width: 90%;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        margin-bottom: 15px;
+      }
+
+      .result-box {
+        margin: 30px auto;
+        background: #ffffff;
+        width: 60%;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      }
+
+      .dims-text {
+        font-size: 20px;
+        font-weight: bold;
+        color: #004aad;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>Stereo Object Size Estimation (ROI-Based)</header>
+
+    <div class="card">
+      <h2>Upload Stereo Pair + Calibration File</h2>
+
+      <form
+        id="uploadForm"
+        method="POST"
+        enctype="multipart/form-data"
+        action="{{ url_for('stereo_preview') }}"
+      >
+        <p><strong>LEFT Stereo Image:</strong></p>
+        <label>
+          <input type="file" name="left" required />
+        </label>
+
+        <p><strong>RIGHT Stereo Image:</strong></p>
+        <input type="file" name="right" required />
+
+        <p><strong>Stereo Calibration File (.npz):</strong></p>
+        <input type="file" name="calib" required />
+
+        <br />
+        <button type="submit">📤 Preview & Select ROI</button>
+      </form>
+    </div>
+
+    {% if left_b64 %}
+    <hr />
+    <h2>Draw ROI on LEFT Image</h2>
+
+    <canvas id="canvas"></canvas>
+
+    <br />
+    <button onclick="sendROI()">📏 Estimate Size</button>
+
+    <script>
+      let img = new Image();
+      img.src = "data:image/png;base64,{{ left_b64 }}";
+
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+
+      img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      };
+
+      let startX, startY, endX, endY;
+      let drawing = false;
+
+      canvas.onmousedown = function (e) {
+        drawing = true;
+        startX = e.offsetX;
+        startY = e.offsetY;
+      };
+
+      canvas.onmousemove = function (e) {
+        if (!drawing) return;
+        endX = e.offsetX;
+        endY = e.offsetY;
+
+        ctx.drawImage(img, 0, 0);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+      };
+
+      canvas.onmouseup = function () {
+        drawing = false;
+      };
+
+      function sendROI() {
+        fetch("/set_stereo_roi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            x: startX,
+            y: startY,
+            w: endX - startX,
+            h: endY - startY,
+            canvas_w: canvas.width,
+            canvas_h: canvas.height,
+          }),
+        }).then(() => {
+          window.location.href = "/process_stereo_size";
+        });
+      }
+    </script>
+    {% endif %} {% if dims %}
+    <hr />
+
+    <div class="result-box">
+      <h2>Estimated Object Dimensions</h2>
+      <p class="dims-text">{{ dims }}</p>
+
+      <h3>Disparity Map</h3>
+      <img
+        src="data:image/png;base64,{{ disparity_b64 }}"
+        alt="Stereo disparity depth visualization"
+      />
+    </div>
+
+    {% endif %}
+  </body>
+</html>

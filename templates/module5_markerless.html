@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Markerless Object Tracking</title>
+
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f0f4f7;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #004aad;
+      color: white;
+      padding: 1rem;
+      font-size: 24px;
+    }
+    .container {
+      margin-top: 30px;
+    }
+    .video-wrapper {
+      display: inline-block;
+      position: relative;
+    }
+    canvas {
+      border: 4px solid #004aad;
+      border-radius: 15px;
+      display: none;
+      cursor: crosshair;
+    }
+    #roi-box {
+      border: 3px dashed #00ff00;
+      background: rgba(0, 255, 0, 0.1);
+      position: absolute;
+      display: none;
+      pointer-events: none;
+    }
+    button, a.back-btn {
+      padding: 12px 25px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      margin: 10px;
+      transition: 0.3s;
+    }
+    button:hover, .back-btn:hover {
+      background: #0056b3;
+      transform: scale(1.05);
+    }
+    .btn-reset {
+      background: #dc3545;
+    }
+    .btn-reset:hover {
+      background: #b02a37;
+    }
+    .instructions {
+      margin: 15px auto;
+      max-width: 600px;
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .status.waiting { color: #666; }
+    .status.tracking { color: #28a745; }
+  </style>
+</head>
+
+<body>
+
+<header>🎯 Markerless Object Tracking</header>
+
+<div class="container">
+  <h2>Track any object without markers</h2>
+  
+  <div class="instructions">
+    <strong>How to use:</strong><br>
+    1. Click "Start Detection" to activate the camera<br>
+    2. Click and drag on the video to draw a box around the object you want to track<br>
+    3. The tracker will follow that object in real-time
+  </div>
+
+  <div>
+    <button id="startBtn">▶ Start Detection</button>
+    <button id="resetBtn" class="btn-reset" style="display:none;">🔄 Reset Tracker</button>
+  </div>
+
+  <p id="status" class="status waiting">⏸️ Camera not started</p>
+
+  <div class="video-wrapper">
+    <canvas id="videoCanvas"></canvas>
+    <div id="roi-box"></div>
+  </div>
+
+  <br/><br/>
+  <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+</div>
+
+<script>
+  const startBtn = document.getElementById("startBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const canvas = document.getElementById("videoCanvas");
+  const roiBox = document.getElementById("roi-box");
+  const status = document.getElementById("status");
+  const ctx = canvas.getContext("2d");
+  
+  let streamImg = null;
+  let isStreaming = false;
+  let drawing = false;
+  let startX, startY;
+
+  // Start detection
+  startBtn.addEventListener("click", () => {
+    fetch("/start_markerless", { method: "POST" })
+      .then(() => {
+        status.textContent = "📹 Camera active — Draw a box around the object to track";
+        status.className = "status waiting";
+        
+        canvas.style.display = "block";
+        startBtn.style.display = "none";
+        resetBtn.style.display = "inline-block";
+        
+        startStream();
+      });
+  });
+
+  // Reset tracker
+  resetBtn.addEventListener("click", () => {
+    fetch("/start_markerless", { method: "POST" })
+      .then(() => {
+        status.textContent = "🔄 Tracker reset — Draw a new box around the object";
+        status.className = "status waiting";
+        roiBox.style.display = "none";
+      });
+  });
+
+  // Start MJPEG stream
+  function startStream() {
+    if (isStreaming) return;
+    isStreaming = true;
+    
+    streamImg = new Image();
+    streamImg.src = "/video_feed_markerless?" + Date.now();
+    
+    streamImg.onload = () => {
+      // Set canvas size to match video
+      canvas.width = streamImg.naturalWidth || 640;
+      canvas.height = streamImg.naturalHeight || 480;
+      drawFrame();
+    };
+  }
+
+  function drawFrame() {
+    if (!isStreaming) return;
+    if (streamImg.complete && streamImg.naturalWidth > 0) {
+      ctx.drawImage(streamImg, 0, 0, canvas.width, canvas.height);
+    }
+    requestAnimationFrame(drawFrame);
+  }
+
+  // ROI Selection - Mouse events
+  canvas.addEventListener("mousedown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    drawing = true;
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    
+    roiBox.style.display = "block";
+    roiBox.style.left = startX + "px";
+    roiBox.style.top = startY + "px";
+    roiBox.style.width = "0px";
+    roiBox.style.height = "0px";
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (!drawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    const x = Math.min(startX, currentX);
+    const y = Math.min(startY, currentY);
+    const w = Math.abs(currentX - startX);
+    const h = Math.abs(currentY - startY);
+    
+    roiBox.style.left = x + "px";
+    roiBox.style.top = y + "px";
+    roiBox.style.width = w + "px";
+    roiBox.style.height = h + "px";
+  });
+
+  canvas.addEventListener("mouseup", (e) => {
+    if (!drawing) return;
+    drawing = false;
+    
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    // Calculate ROI in canvas pixel coordinates
+    const x = Math.min(startX, currentX);
+    const y = Math.min(startY, currentY);
+    const w = Math.abs(currentX - startX);
+    const h = Math.abs(currentY - startY);
+    
+    // Only send if ROI is big enough
+    if (w < 10 || h < 10) {
+      alert("Please draw a larger selection box.");
+      roiBox.style.display = "none";
+      return;
+    }
+    
+    // Scale from displayed size to actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const roi = {
+      x: Math.round(x * scaleX),
+      y: Math.round(y * scaleY),
+      w: Math.round(w * scaleX),
+      h: Math.round(h * scaleY),
+      canvas_w: canvas.width,
+      canvas_h: canvas.height
+    };
+    
+    console.log("Sending ROI:", roi);
+    
+    fetch("/set_roi", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(roi),
+    }).then(() => {
+      status.textContent = "🟢 Tracking active";
+      status.className = "status tracking";
+      roiBox.style.display = "none";  // Hide ROI box, tracking will draw its own
+    });
+  });
+
+  // Prevent context menu on canvas
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+</script>
+
+</body>
+</html>

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Real World Distance using Perspective Projection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        color: #222;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem 0;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+      }
+
+      form {
+        display: inline-block;
+        text-align: left;
+        background: white;
+        padding: 25px 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        margin-bottom: 20px;
+      }
+
+      fieldset {
+        width: 80%;
+        margin: 0 auto 20px auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      fieldset[disabled] {
+        opacity: 0.5;
+      }
+
+      legend h2 {
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      input[type="file"],
+      input[type="number"] {
+        margin-bottom: 12px;
+        width: 100%;
+      }
+
+      button {
+        display: block;
+        margin: 10px auto 0 auto;
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+
+      .canvasContainer {
+        overflow: auto;
+        max-width: 90%;
+        max-height: 80vh;
+        border: 1px solid #000;
+        margin: 10px auto;
+        background: #fafafa;
+      }
+
+      canvas {
+        display: block;
+        margin: auto;
+        border: 1px solid black;
+        width: auto;
+        height: auto;
+        image-rendering: pixelated;
+      }
+
+      #results,
+      #clickedPoints,
+      #worldResults {
+        white-space: pre;
+        margin-top: 20px;
+      }
+
+      .imageResult {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px dashed #666;
+        background: #fafafa;
+      }
+
+      .back-home {
+        display: inline-block;
+        margin-top: 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .back-home:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Real World Distance using Perspective Projection</h1>
+    </header>
+
+    <!-- Step 1: Calibration -->
+    <fieldset id="step1">
+      <legend><h2>Step 1: Upload Chessboard (9x7) Images to Calibrate Camera</h2></legend>
+      <form id="calibrationForm" enctype="multipart/form-data">
+        <label for="calibrationImages">Choose Calibration Images:</label>
+        <input type="file" id="calibrationImages" name="images" multiple required />
+        <button type="submit">Calibrate</button>
+      </form>
+      <h3>Calibration Values</h3>
+      <div id="results"></div>
+    </fieldset>
+
+    <!-- Step 2: Distance -->
+    <fieldset id="step2" disabled>
+      <legend><h2>Step 2: Enter / Update Distance</h2></legend>
+      <form id="distanceForm">
+        <label for="distanceInput">Distance Between Camera and Object (cm):</label>
+        <input type="number" id="distanceInput" name="distance" min="1" required />
+        <button type="submit">Save Distance</button>
+      </form>
+      <div id="currentDistance"></div>
+    </fieldset>
+
+    <!-- Step 3: Click Points -->
+    <fieldset id="step3" disabled>
+      <legend><h2>Step 3: Upload an Image and Click 4 Points Clockwise</h2></legend>
+      <label for="pointImage">Choose an Image:</label>
+      <input type="file" id="pointImage" name="pointImage" />
+      <div class="canvasContainer">
+        <canvas id="imageCanvas"></canvas>
+      </div>
+      <h3>Clicked Points (max 4)</h3>
+      <div id="clickedPoints"></div>
+    </fieldset>
+
+    <!-- Step 4: Results -->
+    <fieldset id="step4" disabled>
+      <legend><h2>Step 4: Results</h2></legend>
+      <div id="worldResults"></div>
+    </fieldset>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <script>
+      let calibrationData = {};
+      let clickedPoints = [];
+      let distance = null;
+      let imageCounter = 0;
+
+      // Step 1: Calibration
+      document.getElementById("calibrationForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch("/calibrate", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById("results").textContent = "Error: " + data.error;
+          return;
+        }
+
+        calibrationData = data;
+        document.getElementById(
+          "results"
+        ).textContent = `Fx = ${data.Fx}\nFy = ${data.Fy}\nOx = ${data.Ox}\nOy = ${data.Oy}`;
+        document.getElementById("step2").disabled = false;
+      });
+
+      // Step 2: Distance Input
+      document.getElementById("distanceForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        distance = document.getElementById("distanceInput").value;
+        if (distance && distance > 0) {
+          document.getElementById("currentDistance").textContent =
+            `Current Distance: ${distance} cm`;
+          document.getElementById("step3").disabled = false;
+        }
+      });
+
+      // Step 3: Upload Image + Click Points
+      const canvas = document.getElementById("imageCanvas");
+      const ctx = canvas.getContext("2d");
+      const clickedPointsDiv = document.getElementById("clickedPoints");
+
+      document.getElementById("pointImage").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = new Image();
+          img.onload = function () {
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, img.naturalWidth, img.naturalHeight);
+            clickedPoints = [];
+            clickedPointsDiv.textContent = "";
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      canvas.addEventListener("click", (e) => {
+        if (clickedPoints.length >= 4) {
+          alert("You have already selected 4 points. Upload a new image to continue.");
+          return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        clickedPoints.push({ x: Math.round(x), y: Math.round(y) });
+
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+
+        clickedPointsDiv.textContent = clickedPoints
+          .map((p, i) => `Point ${i + 1}: (${p.x}, ${p.y})`)
+          .join("\n");
+
+        if (clickedPoints.length === 4) processImageResults();
+      });
+
+      // Step 4: Results
+      function processImageResults() {
+        imageCounter++;
+        const dx12 = Math.abs(clickedPoints[0].x - clickedPoints[1].x);
+        const dx23 = Math.abs(clickedPoints[1].y - clickedPoints[2].y);
+
+        const Fx = parseFloat(calibrationData.Fx);
+        const Fy = parseFloat(calibrationData.Fy);
+        const dist = parseFloat(distance);
+
+        const X_world = (dx12 * dist) / Fx;
+        const Y_world = (dx23 * dist) / Fy;
+
+        const resultsDiv = document.getElementById("worldResults");
+        const block = document.createElement("div");
+        block.className = "imageResult";
+        block.textContent =
+          `Image ${imageCounter}:\n` +
+          `Distance (cm): ${dist}\n` +
+          `Point 1 = (${clickedPoints[0].x}, ${clickedPoints[0].y})\n` +
+          `Point 2 = (${clickedPoints[1].x}, ${clickedPoints[1].y})\n` +
+          `Point 3 = (${clickedPoints[2].x}, ${clickedPoints[2].y})\n` +
+          `Point 4 = (${clickedPoints[3].x}, ${clickedPoints[3].y})\n` +
+          `X_world = ${X_world.toFixed(3)} cm\n` +
+          `Y_world = ${Y_world.toFixed(3)} cm\n`;
+
+        resultsDiv.appendChild(block);
+        document.getElementById("step4").disabled = false;
+      }
+    </script>
+  </body>
+</html>

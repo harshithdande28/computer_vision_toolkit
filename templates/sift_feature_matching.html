@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SIFT Feature Extraction + RANSAC</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        text-align: center;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+      }
+      input[type="file"] {
+        margin: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      img {
+        max-width: 90%;
+        margin: 10px;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <header><h1>🔍 SIFT Feature Extraction + RANSAC Optimization</h1></header>
+    <form id="siftForm" enctype="multipart/form-data">
+      <p>Upload two overlapping images:</p>
+      <input type="file" name="image1" accept="image/*" required />
+      <input type="file" name="image2" accept="image/*" required /><br />
+      <button type="submit">Run SIFT + RANSAC</button>
+    </form>
+
+    <div id="output"></div>
+
+    <script>
+      document
+        .getElementById("siftForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          document.getElementById("output").innerHTML =
+            "<p>⏳ Processing...</p>";
+          const res = await fetch("/process_sift_feature_matching", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.error) {
+            document.getElementById(
+              "output"
+            ).innerHTML = `<p style='color:red'>${data.error}</p>`;
+            return;
+          }
+          let html = `<h3>✅ Our SIFT + RANSAC (matches: ${data.matches_ours}, inliers: ${data.ours_inliers})</h3>
+               <img src="data:image/jpeg;base64,${data.ours}"/>
+               <h3>🧩 OpenCV SIFT (matches: ${data.matches_opencv}, inliers: ${data.opencv_inliers})</h3>
+               <img src="data:image/jpeg;base64,${data.opencv}"/>`;
+          document.getElementById("output").innerHTML = html;
+        });
+    </script>
+  </body>
+</html>

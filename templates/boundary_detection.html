@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Boundary Detection — Web ROI</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        text-align: center;
+      }
+      header { background:#004aad;color:white;padding:1rem; }
+      canvas {
+        border: 2px dashed #007bff;
+        margin-top: 15px;
+        cursor: crosshair;
+        max-width: 90%;
+        max-height: 600px;
+      }
+      button {
+        margin: 15px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background:#007bff;
+        color:white;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+      }
+      button:hover { background:#0056b3; }
+      img {
+        width:250px;
+        margin:10px;
+        border-radius:10px;
+        border:2px solid #ddd;
+      }
+      .image-row { display:flex;justify-content:center;flex-wrap:wrap; }
+      .image-col { margin:10px;text-align:center; }
+      label { font-weight:600; display:block; margin-top:10px; }
+    </style>
+  </head>
+
+  <body>
+    <header><h1>Boundary Detection — Select ROI on Image</h1></header>
+
+    <div class="container">
+      <label for="imageInput">Upload an image to detect boundaries:</label>
+      <input type="file" id="imageInput" accept="image/*" />
+      <br />
+      <canvas id="canvas"></canvas>
+      <br />
+      <button id="processBtn" disabled>Detect Boundaries</button>
+      <div id="results"></div>
+    </div>
+
+    <script>
+      const input = document.getElementById("imageInput");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const btn = document.getElementById("processBtn");
+      let img = new Image();
+      let roi = null, startX, startY, isDown = false;
+      let scale = 1.0; // scale between displayed and original (kept for future use)
+
+      input.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          img.onload = () => {
+            const maxW = 800, maxH = 600;
+            scale = Math.min(maxW / img.width, maxH / img.height, 1.0);
+            const dispW = img.width * scale;
+            const dispH = img.height * scale;
+            canvas.width = dispW;
+            canvas.height = dispH;
+            ctx.drawImage(img, 0, 0, dispW, dispH);
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        btn.disabled = false;
+      });
+
+      // ROI drawing
+      canvas.addEventListener("mousedown", (e) => {
+        isDown = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+      });
+
+      canvas.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const w = x - startX;
+        const h = y - startY;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(startX, startY, w, h);
+      });
+
+      canvas.addEventListener("mouseup", (e) => {
+        isDown = false;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        roi = {
+          x: Math.min(x, startX),
+          y: Math.min(y, startY),
+          w: Math.abs(x - startX),
+          h: Math.abs(y - startY)
+        };
+        console.log("ROI:", roi);
+      });
+
+      // Send to backend
+      btn.addEventListener("click", async () => {
+        if (!roi) { alert("Please draw a region first."); return; }
+
+        const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg"));
+        const formData = new FormData();
+        formData.append("image", blob);
+        formData.append("x", roi.x);
+        formData.append("y", roi.y);
+        formData.append("w", roi.w);
+        formData.append("h", roi.h);
+
+        const resp = await fetch("/process_boundary_detection_web", {
+          method: "POST", body: formData
+        });
+        const data = await resp.json();
+
+        if (data.error) return alert(data.error);
+        const div = document.getElementById("results");
+        div.innerHTML = `
+          <h3>Results</h3>
+          <div class="image-row">
+            <div class="image-col">
+              <h5>Selected Region</h5>
+              <img src="data:image/png;base64,${data.selected}" alt="Selected Region"/>
+            </div>
+            <div class="image-col">
+              <h5>Edges</h5>
+              <img src="data:image/png;base64,${data.edges}" alt="Detected Edges"/>
+            </div>
+            <div class="image-col">
+              <h5>Boundary</h5>
+              <img src="data:image/png;base64,${data.boundary}" alt="Boundary Result"/>
+            </div>
+          </div>`;
+      });
+    </script>
+  </body>
+</html>

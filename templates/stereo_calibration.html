@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stereo Calibration (.npz Generator)</title>
+
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+        font-size: 24px;
+      }
+
+      .container {
+        margin: 40px auto;
+        width: 60%;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      input[type="file"],
+      input[type="text"] {
+        padding: 10px;
+        margin: 10px;
+        width: 60%;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 12px 25px;
+        margin-top: 20px;
+        font-size: 17px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+
+      .message {
+        margin-top: 25px;
+        font-size: 20px;
+        color: green;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>Stereo Calibration (.npz Generator)</header>
+
+    <div class="container">
+      <h2>Upload Stereo Calibration Image Pairs</h2>
+
+      <form
+        action="{{ url_for('process_stereo_calibration') }}"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <p><strong>Upload LEFT images (multiple):</strong></p>
+        <label>
+          <input type="file" name="left_images" multiple required />
+        </label>
+
+        <p><strong>Upload RIGHT images (multiple):</strong></p>
+        <input type="file" name="right_images" multiple required />
+
+        <p><strong>Chessboard size (columns, rows):</strong></p>
+        <input type="text" name="chess_cols" value="9" />
+        <input type="text" name="chess_rows" value="6" />
+
+        <button type="submit">📁 Generate Calibration (.npz)</button>
+      </form>
+
+      {% if message %}
+      <div class="message">
+        <h3>{{ message }}</h3>
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

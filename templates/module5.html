@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Module 5 - Real-Time Object Tracking</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+        font-size: 26px;
+      }
+      .container {
+        margin-top: 40px;
+      }
+      button {
+        padding: 14px 30px;
+        font-size: 18px;
+        margin: 20px;
+        background: #007bff;
+        border: none;
+        color: white;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+      a.back-btn {
+        display: inline-block;
+        margin-top: 25px;
+        padding: 12px 25px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        transition: 0.3s;
+        font-size: 18px;
+      }
+      a.back-btn:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>🎥 Module 5: Real-Time Object Tracking</header>
+
+    <div class="container">
+      <h2>Select Tracking Method</h2>
+
+      <form action="{{ url_for('module5_marker') }}">
+        <button type="submit">📦 Marker-Based Tracking (QR / ArUco)</button>
+      </form>
+
+      <form action="{{ url_for('module5_markerless') }}">
+        <button type="submit">🎯 Markerless Tracking</button>
+      </form>
+
+      <form action="{{ url_for('module5_sam2') }}">
+        <button type="submit">🧠 SAM2 Segmentation Tracking</button>
+      </form>
+
+      <br />
+      <a href="/" class="back-btn">⬅ Back to Home</a>
+    </div>
+  </body>
+</html>

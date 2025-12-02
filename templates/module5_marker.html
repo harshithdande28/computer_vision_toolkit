@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Marker-Based Object Tracking</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f0f4f7;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #004aad;
+            color: white;
+            padding: 1rem;
+            font-size: 24px;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        video, img {
+            border: 4px solid #004aad;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 900px;
+        }
+        a.back-btn {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 25px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: 0.3s;
+            font-size: 18px;
+        }
+        a.back-btn:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    📦 Marker-Based Object Tracking (Aruco / QR)
+</header>
+
+<div class="container">
+    <h2>Live Webcam Feed</h2>
+
+    <!-- STREAMING VIDEO FEED -->
+    <img src="{{ url_for('video_feed_marker') }}" alt="Marker Tracking Stream">
+
+    <!-- BACK BUTTON -->
+    <br><br>
+    <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+</div>
+
+</body>
+</html>

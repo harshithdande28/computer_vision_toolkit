@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Computer Vision Lab</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+      }
+      .container {
+        margin-top: 50px;
+      }
+      .module {
+        background: white;
+        border-radius: 15px;
+        width: 60%;
+        margin: 20px auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      .module-title {
+        background: #007bff;
+        color: white;
+        font-size: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .module-title:hover {
+        background: #0056b3;
+        transform: scale(1.03);
+      }
+      .module-content {
+        display: none;
+        margin-top: 20px;
+        animation: fadeIn 0.4s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      button {
+        padding: 12px 25px;
+        margin: 10px;
+        font-size: 17px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+    </style>
+    <script>
+      function toggleModule(id) {
+        const el = document.getElementById(id);
+        el.style.display = el.style.display === "block" ? "none" : "block";
+      }
+    </script>
+  </head>
+
+  <body>
+    <header>
+      <h1>Computer Vision Toolkit</h1>
+    </header>
+
+    <div class="container">
+      <h2>Select a Module</h2>
+
+      <!-- MODULE 1 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module1')">
+          🧩 Module 1: Camera Calibration & Projection
+        </div>
+        <div class="module-content" id="module1">
+          <form action="{{ url_for('perspective_projection') }}">
+            <button type="submit">📐 Perspective Projection</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE 2 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module2')">
+          ⚙️ Module 2: Image Processing & Detection
+        </div>
+        <div class="module-content" id="module2">
+          <form action="{{ url_for('gaussian_blur_nd_fourier_transform') }}">
+            <button type="submit">🔍 Gaussian Blur & Fourier Transform</button>
+          </form>
+
+          <form action="{{ url_for('template_matching') }}">
+            <button type="submit">🎯 Template Matching</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE 3 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module3')">
+          🧠 Module 3: Gradient & Laplacian of Gaussian
+        </div>
+        <div class="module-content" id="module3">
+          <form action="{{ url_for('gradient_and_log') }}">
+            <button type="submit">
+              📈 Gradient Images & Laplacian of Gaussian
+            </button>
+          </form>
+          <form action="{{ url_for('double_threshold_edges') }}">
+            <button type="submit">
+              🧮 Manual Edge Detection (Double Thresholding)
+            </button>
+          </form>
+          <form action="{{ url_for('manual_corners') }}">
+            <button type="submit">🔴 Manual Corner Detection</button>
+          </form>
+          <form action="{{ url_for('boundary_detection') }}">
+            <button type="submit">
+              🧩 Boundary Detection (Select Object ROI)
+            </button>
+          </form>
+          <form action="{{ url_for('aruco_segmentation') }}">
+            <button type="submit">🧩 ArUco-Based Object Segmentation</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE 4 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module4')">
+          🌄 Module 4: Image Stitching (Panorama Creation)
+        </div>
+        <div class="module-content" id="module4">
+          <form action="{{ url_for('image_stitching') }}">
+            <button type="submit">🧵 Image Stitching Experiment</button>
+          </form>
+          <form action="{{ url_for('sift_feature_matching') }}">
+            <button type="submit">🔍 SIFT Feature Extraction + RANSAC</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE 5 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module5')">
+          🎥 Module 5-6 : Real-Time Object Tracking
+        </div>
+        <div class="module-content" id="module5">
+          <form action="{{ url_for('module5_marker') }}">
+            <button type="submit">📦 Marker-Based Tracking (QR/Aruco)</button>
+          </form>
+
+          <form action="{{ url_for('module5_markerless') }}">
+            <button type="submit">🎯 Markerless Tracking</button>
+          </form>
+
+          <form action="{{ url_for('module5_sam2') }}">
+            <button type="submit">🧠 SAM2 Segmentation Tracking</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- MODULE 7 -->
+      <div class="module">
+        <div class="module-title" onclick="toggleModule('module7')">
+          📏 Module 7: Stereo-Based Object Size Estimation
+        </div>
+        <div class="module-content" id="module7">
+          <form action="{{ url_for('stereo_calibration') }}">
+            <button type="submit">🎯 Stereo Calibration (Generate .npz)</button>
+          </form>
+
+          <form action="{{ url_for('stereo_size_estimation') }}">
+            <button type="submit">📐 Stereo Object Size Measurement</button>
+          </form>
+
+          <!-- ➕ NEW: Pose & Hand Tracking -->
+          <form action="{{ url_for('pose_hand_tracking') }}">
+            <button type="submit">🧍‍♀️ Real-Time Pose & Hand Tracking</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

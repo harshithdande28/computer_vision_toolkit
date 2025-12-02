@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Template Matching</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        color: #222;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem 0;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      form {
+        display: inline-block;
+        text-align: left;
+        background: white;
+        padding: 25px 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        margin-bottom: 30px;
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+
+      input[type="file"] {
+        margin-bottom: 20px;
+        width: 100%;
+      }
+
+      button {
+        display: block;
+        margin: 0 auto;
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+
+      .image-row {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+      }
+
+      .image-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .image-container h4 {
+        margin: 5px 0;
+        font-size: 18px;
+      }
+
+      img {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 300px;
+      }
+
+      .back-home {
+        display: inline-block;
+        margin-top: 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .back-home:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Template Matching</h1>
+    </header>
+
+    <div style="text-align: center">
+      <form id="templateForm" enctype="multipart/form-data">
+        <label for="main_image">Upload Scene Image:</label>
+        <input type="file" id="main_image" name="main_image" required />
+
+        <label for="template_images"
+          >Upload Template Images (you can select multiple):</label
+        >
+        <input
+          type="file"
+          id="template_images"
+          name="template_images"
+          multiple
+          required
+        />
+
+        <button type="submit">Run Template Matching</button>
+      </form>
+    </div>
+
+    <div id="results"></div>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <script>
+      document
+        .getElementById("templateForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const res = await fetch("/process_template_matching", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (data.error) {
+            document.getElementById("results").textContent =
+              "Error: " + data.error;
+            return;
+          }
+
+          let html = "<h3>Results</h3>";
+          data.forEach((res, idx) => {
+            html += `
+            <div class="image-row">
+              <div class="image-container">
+                <h4>Main Image</h4>
+                <img src="data:image/png;base64,${res.main}" />
+              </div>
+              <div class="image-container">
+                <h4>Template: ${res.template_name}</h4>
+                <img src="data:image/png;base64,${res.template}" />
+              </div>
+              <div class="image-container">
+                <h4>Detected Match</h4>
+                <img src="data:image/png;base64,${res.result}" />
+              </div>
+            </div>
+            <hr/>
+          `;
+          });
+          document.getElementById("results").innerHTML = html;
+        });
+    </script>
+  </body>
+</html>

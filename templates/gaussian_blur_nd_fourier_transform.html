@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gaussian Blurring & Fourier Transform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <style>
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        color: #222;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem 0;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      form {
+        display: inline-block;
+        text-align: left;
+        background: white;
+        padding: 25px 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        margin-bottom: 30px;
+      }
+
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
+
+      input[type="file"] {
+        margin-bottom: 20px;
+        width: 100%;
+      }
+
+      button {
+        display: block;
+        margin: 0 auto;
+        padding: 12px 24px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+        transform: scale(1.05);
+      }
+
+      .image-row {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+      }
+
+      .image-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .image-container h4 {
+        margin: 5px 0;
+        font-size: 18px;
+      }
+
+      img {
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 300px;
+        height: auto;
+      }
+
+      .back-home {
+        display: inline-block;
+        margin-top: 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      .back-home:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Gaussian Blurring & Fourier Transform</h1>
+    </header>
+
+    <div style="text-align: center;">
+      <form id="fourierForm" enctype="multipart/form-data">
+        <label for="image">Upload Image:</label>
+        <input type="file" id="image" name="image" required />
+
+        <button type="submit">Process</button>
+      </form>
+    </div>
+
+    <div id="results"></div>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <script>
+      document.getElementById("fourierForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const res = await fetch("/process_fourier", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById("results").textContent = "Error: " + data.error;
+          return;
+        }
+
+        document.getElementById("results").innerHTML = `
+          <h3>Results</h3>
+          <div class="image-row">
+            <div class="image-container">
+              <h4>Original Image</h4>
+              <img src="data:image/png;base64,${data.original}" alt="Original Image" />
+            </div>
+            <div class="image-container">
+              <h4>Gaussian Blur</h4>
+              <img src="data:image/png;base64,${data.blurred}" alt="Blurred Image" />
+            </div>
+            <div class="image-container">
+              <h4>Recovered Image</h4>
+              <img src="data:image/png;base64,${data.restored}" alt="Recovered Image" />
+            </div>
+          </div>
+        `;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Manual Edge Detection (Double Thresholding)</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+      }
+      .container {
+        margin-top: 40px;
+      }
+      input[type="file"] {
+        margin: 15px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      img {
+        width: 250px;
+        margin: 10px;
+        border-radius: 10px;
+        border: 2px solid #ddd;
+      }
+      .image-set {
+        background: white;
+        margin: 20px auto;
+        width: 90%;
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .image-row {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .image-col {
+        margin: 10px 15px;
+        text-align: center;
+      }
+      .image-col h5 {
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: #333;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Manual Edge Detection using Double Thresholding</h1>
+    </header>
+
+    <div class="container">
+      <form id="uploadForm" enctype="multipart/form-data" method="POST">
+        <h3>Upload One or More Images</h3>
+        <label> <input type="file" name="images" multiple required /></label>
+        <br />
+        <button type="submit">Process</button>
+      </form>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      const form = document.getElementById("uploadForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const res = await fetch("/process_double_threshold", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        const container = document.getElementById("results");
+        container.innerHTML = "<h3>Results</h3>";
+
+        data.processed_images.forEach((imgSet) => {
+          container.innerHTML += `
+            <div class="image-set">
+              <h4>${imgSet.filename}</h4>
+              <div class="image-row">
+                <div class="image-col">
+                  <h5>Original (Gray Scale)</h5>
+                  <img src="data:image/png;base64,${imgSet.original}" alt="Original"/>
+                </div>
+                <div class="image-col">
+                  <h5>Gradient Magnitude</h5>
+                  <img src="data:image/png;base64,${imgSet.gradient_mag}" alt="Gradient Magnitude"/>
+                </div>
+                <div class="image-col">
+                  <h5>Final Edges</h5>
+                  <img src="data:image/png;base64,${imgSet.final}" alt="Final Edges"/>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      });
+    </script>
+  </body>
+</html>

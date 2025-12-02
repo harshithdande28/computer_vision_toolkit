@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gradient & Laplacian of Gaussian</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+      }
+      .container {
+        margin-top: 40px;
+      }
+      input[type="file"] {
+        margin: 15px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      img {
+        width: 250px;
+        margin: 10px;
+        border-radius: 10px;
+        border: 2px solid #ddd;
+      }
+      .image-set {
+        background: white;
+        margin: 20px auto;
+        width: 90%;
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      .image-set h4 {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>Gradient Images & Laplacian of Gaussian</h1>
+    </header>
+
+    <div class="container">
+      <form id="uploadForm" enctype="multipart/form-data" method="POST">
+        <h3>Upload Images</h3>
+        <label>
+          <input type="file" name="images" multiple required />
+        </label>
+        <br />
+        <button type="submit">Process</button>
+      </form>
+
+      <div id="results"></div>
+    </div>
+
+    <script>
+      const form = document.getElementById("uploadForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        // Send multiple images to backend
+        const res = await fetch("/process_gradient_log", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // Clear previous results
+        const container = document.getElementById("results");
+        container.innerHTML = "<h3>Results</h3>";
+
+        // Loop through all processed images
+        data.processed_images.forEach((imgSet) => {
+          container.innerHTML += `
+            <div class="image-set">
+              <h4>${imgSet.filename}</h4>
+              <img src="data:image/png;base64,${imgSet.original}" alt="Original"/>
+              <img src="data:image/png;base64,${imgSet.magnitude}" alt="Gradient Magnitude"/>
+              <img src="data:image/png;base64,${imgSet.angle}" alt="Gradient Angle"/>
+              <img src="data:image/png;base64,${imgSet.log}" alt="Laplacian of Gaussian"/>
+            </div>
+          `;
+        });
+      });
+    </script>
+  </body>
+</html>

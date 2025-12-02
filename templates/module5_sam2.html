@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SAM2 Segmentation Tracking</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f0f4f7;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background:#004aad;
+            color:white;
+            padding:1rem;
+            font-size:24px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .step-box {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 12px 25px;
+            margin: 10px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background: #0056b3;
+            transform: scale(1.02);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-generate {
+            background: #28a745;
+        }
+        .btn-generate:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .frame-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        #frameCanvas {
+            border: 3px solid #004aad;
+            border-radius: 10px;
+            cursor: crosshair;
+            max-width: 100%;
+        }
+
+        #roiBox {
+            position: absolute;
+            border: 3px dashed #00ff00;
+            background: rgba(0, 255, 0, 0.15);
+            pointer-events: none;
+            display: none;
+        }
+
+        .stream-container img {
+            border: 4px solid #004aad;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 15px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .status.info { background: #e3f2fd; color: #1976d2; }
+        .status.success { background: #e8f5e9; color: #388e3c; }
+        .status.error { background: #ffebee; color: #d32f2f; }
+        .status.warning { background: #fff3e0; color: #f57c00; }
+
+        .instructions {
+            font-size: 14px;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        a.back-btn {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 12px 25px;
+            background: #007bff;
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        a.back-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>🧠 SAM2 Segmentation Tracking</header>
+
+<div class="container">
+
+    <!-- STEP 1: Load Video Frame and Select ROI -->
+    <div class="step-box">
+        <h2>Step 1: Select Object to Segment</h2>
+        <p class="instructions">Load the video frame, then draw a box around the object you want to track.</p>
+        
+        <button id="loadFrameBtn" onclick="loadFirstFrame()">📹 Load Video Frame</button>
+        
+        <div id="frameArea" style="display: none;">
+            <div class="frame-container">
+                <canvas id="frameCanvas"></canvas>
+                <div id="roiBox"></div>
+            </div>
+            <p class="instructions">Click and drag to draw a bounding box around the object</p>
+        </div>
+        
+        <p id="roiStatus" class="status info" style="display: none;"></p>
+    </div>
+
+    <!-- STEP 2: Generate Masks -->
+    <div class="step-box">
+        <h2>Step 2: Generate Segmentation Masks</h2>
+        <p class="instructions">After selecting the ROI, click to generate masks for the entire video.</p>
+        
+        <button id="generateBtn" class="btn-generate" onclick="generateMasks()" disabled>
+            🎯 Generate Masks
+        </button>
+        <button id="cancelBtn" onclick="cancelGeneration()" style="display: none; background: #dc3545;">
+            ❌ Cancel
+        </button>
+        
+        <p id="generateStatus" class="status info" style="display: none;"></p>
+    </div>
+
+    <!-- STEP 3: View Results -->
+    <div class="step-box">
+        <h2>Step 3: View Segmentation Results</h2>
+        <p class="instructions">Start the real-time tracking to see the segmentation applied to the video.</p>
+        
+        <button id="trackingBtn" onclick="startTracking()" disabled>▶️ Start Tracking View</button>
+        <button id="stopBtn" onclick="stopTracking()" style="display: none; background: #dc3545;">⏹️ Stop</button>
+        
+        <div id="streamArea" class="stream-container"></div>
+    </div>
+
+    <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+</div>
+
+<script>
+    const frameCanvas = document.getElementById('frameCanvas');
+    const ctx = frameCanvas.getContext('2d');
+    const roiBox = document.getElementById('roiBox');
+    
+    let selectedROI = null;
+    let drawing = false;
+    let startX, startY;
+    let frameLoaded = false;
+    let frameWidth, frameHeight;
+
+    // Load first frame of video
+    function loadFirstFrame() {
+        document.getElementById('loadFrameBtn').disabled = true;
+        document.getElementById('loadFrameBtn').textContent = '⏳ Loading...';
+        
+        fetch('/sam2_first_frame')
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    document.getElementById('loadFrameBtn').disabled = false;
+                    document.getElementById('loadFrameBtn').textContent = '📹 Load Video Frame';
+                    return;
+                }
+                
+                const img = new Image();
+                img.onload = () => {
+                    frameWidth = data.width;
+                    frameHeight = data.height;
+                    
+                    // Set canvas size (max 800px wide)
+                    const maxWidth = 800;
+                    const scale = Math.min(1, maxWidth / frameWidth);
+                    frameCanvas.width = frameWidth * scale;
+                    frameCanvas.height = frameHeight * scale;
+                    
+                    ctx.drawImage(img, 0, 0, frameCanvas.width, frameCanvas.height);
+                    
+                    document.getElementById('frameArea').style.display = 'block';
+                    document.getElementById('loadFrameBtn').style.display = 'none';
+                    
+                    const roiStatus = document.getElementById('roiStatus');
+                    roiStatus.style.display = 'block';
+                    roiStatus.textContent = '📌 Draw a box around the object you want to segment';
+                    roiStatus.className = 'status info';
+                    
+                    frameLoaded = true;
+                };
+                img.src = 'data:image/jpeg;base64,' + data.frame;
+            })
+            .catch(err => {
+                alert('Failed to load frame: ' + err);
+                document.getElementById('loadFrameBtn').disabled = false;
+                document.getElementById('loadFrameBtn').textContent = '📹 Load Video Frame';
+            });
+    }
+
+    // ROI selection events
+    frameCanvas.addEventListener('mousedown', (e) => {
+        if (!frameLoaded) return;
+        drawing = true;
+        const rect = frameCanvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        
+        roiBox.style.display = 'block';
+        roiBox.style.left = startX + 'px';
+        roiBox.style.top = startY + 'px';
+        roiBox.style.width = '0px';
+        roiBox.style.height = '0px';
+    });
+
+    frameCanvas.addEventListener('mousemove', (e) => {
+        if (!drawing) return;
+        const rect = frameCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        
+        roiBox.style.left = x + 'px';
+        roiBox.style.top = y + 'px';
+        roiBox.style.width = w + 'px';
+        roiBox.style.height = h + 'px';
+    });
+
+    frameCanvas.addEventListener('mouseup', (e) => {
+        if (!drawing) return;
+        drawing = false;
+        
+        const rect = frameCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        
+        if (w < 20 || h < 20) {
+            roiBox.style.display = 'none';
+            document.getElementById('roiStatus').textContent = '⚠️ Selection too small. Please draw a larger box.';
+            document.getElementById('roiStatus').className = 'status warning';
+            return;
+        }
+        
+        // Scale to original video dimensions
+        const scaleX = frameWidth / frameCanvas.width;
+        const scaleY = frameHeight / frameCanvas.height;
+        
+        selectedROI = {
+            x: Math.round(x * scaleX),
+            y: Math.round(y * scaleY),
+            w: Math.round(w * scaleX),
+            h: Math.round(h * scaleY)
+        };
+        
+        document.getElementById('roiStatus').textContent = 
+            `✅ ROI Selected: (${selectedROI.x}, ${selectedROI.y}) - Size: ${selectedROI.w} x ${selectedROI.h}`;
+        document.getElementById('roiStatus').className = 'status success';
+        document.getElementById('generateBtn').disabled = false;
+    });
+
+    // Generate masks
+    function generateMasks() {
+        if (!selectedROI) {
+            alert('Please select an ROI first.');
+            return;
+        }
+        
+        document.getElementById('generateBtn').disabled = true;
+        document.getElementById('generateBtn').style.display = 'none';
+        document.getElementById('cancelBtn').style.display = 'inline-block';
+        
+        const genStatus = document.getElementById('generateStatus');
+        genStatus.style.display = 'block';
+        genStatus.textContent = '🔄 Generating masks... This may take a few minutes. Click Cancel to stop.';
+        genStatus.className = 'status info';
+        
+        fetch('/generate_sam2_masks_web', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(selectedROI)
+        })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('generateBtn').style.display = 'inline-block';
+            document.getElementById('generateBtn').textContent = '🎯 Generate Masks';
+            document.getElementById('cancelBtn').style.display = 'none';
+            
+            if (data.status === 'ok') {
+                genStatus.textContent = `✅ ${data.message}`;
+                genStatus.className = 'status success';
+                document.getElementById('trackingBtn').disabled = false;
+            } else if (data.status === 'cancelled') {
+                genStatus.textContent = '⚠️ Generation cancelled.';
+                genStatus.className = 'status warning';
+                document.getElementById('generateBtn').disabled = false;
+            } else {
+                genStatus.textContent = '❌ Error: ' + (data.error || 'Unknown error');
+                genStatus.className = 'status error';
+                document.getElementById('generateBtn').disabled = false;
+            }
+        })
+        .catch(err => {
+            document.getElementById('generateBtn').disabled = false;
+            document.getElementById('generateBtn').style.display = 'inline-block';
+            document.getElementById('generateBtn').textContent = '🎯 Generate Masks';
+            document.getElementById('cancelBtn').style.display = 'none';
+            genStatus.textContent = '❌ Failed: ' + err;
+            genStatus.className = 'status error';
+        });
+    }
+
+    // Cancel mask generation
+    function cancelGeneration() {
+        fetch('/cancel_mask_generation', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                console.log('Cancel requested:', data.message);
+            });
+    }
+
+    // Start tracking view
+    function startTracking() {
+        document.getElementById('trackingBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+        document.getElementById('streamArea').innerHTML = 
+            '<img src="/video_feed_sam2?' + Date.now() + '" alt="SAM2 Segmentation">';
+    }
+
+    function stopTracking() {
+        document.getElementById('streamArea').innerHTML = '';
+        document.getElementById('trackingBtn').style.display = 'inline-block';
+        document.getElementById('stopBtn').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Real-Time Pose & Hand Tracking</title>
+
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+      }
+
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+        font-size: 24px;
+      }
+
+      .container {
+        margin: 40px auto;
+        width: 70%;
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .video-box {
+        margin-top: 20px;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1a1a2e;
+        border-radius: 12px;
+        border: 2px solid #004aad;
+      }
+
+      .video-box img {
+        width: 640px;
+        max-width: 95%;
+        border-radius: 10px;
+      }
+
+      .video-placeholder {
+        color: #888;
+        font-size: 18px;
+      }
+
+      .note {
+        margin-top: 15px;
+        font-size: 14px;
+        color: #555;
+      }
+
+      .csv-info {
+        margin-top: 20px;
+        font-size: 15px;
+        text-align: left;
+        margin-left: 10%;
+        margin-right: 10%;
+        line-height: 1.6;
+      }
+
+      .btn-group {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 14px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      .btn-start {
+        background: #004aad;
+        color: white;
+      }
+
+      .btn-start:hover {
+        background: #003580;
+      }
+
+      .btn-stop {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-stop:hover {
+        background: #b02a37;
+      }
+
+      .btn-download {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-download:hover {
+        background: #218838;
+      }
+
+      .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      .btn.disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .status {
+        margin-top: 15px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .status.active {
+        color: #28a745;
+      }
+
+      .status.inactive {
+        color: #666;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>Real-Time Pose & Hand Tracking (MediaPipe)</header>
+
+    <div class="container">
+      <h2>Live Pose & Hand Landmarks</h2>
+      <p>
+        Stand in front of the webcam and move your body and hands. Landmarks
+        will be drawn in real time.
+      </p>
+
+      <div class="btn-group">
+        <button id="startBtn" class="btn btn-start" onclick="startTracking()">
+          ▶️ Start Tracking
+        </button>
+        <button
+          id="stopBtn"
+          class="btn btn-stop"
+          onclick="stopTracking()"
+          disabled
+        >
+          ⏹️ Stop Tracking
+        </button>
+      </div>
+
+      <p id="status" class="status inactive">⏸️ Tracking not started</p>
+
+      <div class="video-box" id="videoBox">
+        <p class="video-placeholder" id="placeholder">
+          Click "Start Tracking" to begin
+        </p>
+        <img
+          id="videoFeed"
+          style="display: none"
+          alt="Pose and hand tracking video stream"
+        />
+      </div>
+
+      <div class="btn-group">
+        <a
+          href="/download_pose_data"
+          id="downloadBtn"
+          class="btn btn-download disabled"
+          onclick="return canDownload()"
+          download
+        >
+          ⬇️ Download CSV Data
+        </a>
+      </div>
+
+      <p class="note">
+        📝 Landmarks are logged to <code>uploads/pose_hand_data.csv</code> while
+        tracking is active.
+      </p>
+
+      <div class="csv-info">
+        <h3>CSV Data Format (for your report)</h3>
+        <p>
+          Each row in <code>pose_hand_data.csv</code> has the following columns:
+        </p>
+        <ul>
+          <li>
+            <strong>type</strong> – <code>"pose"</code> for body landmarks,
+            <code>"hand"</code> for hand landmarks.
+          </li>
+          <li>
+            <strong>hand_index</strong> – <code>-1</code> for pose landmarks;
+            <code>0</code> or <code>1</code> for each detected hand.
+          </li>
+          <li>
+            <strong>landmark_index</strong> – Index of the landmark (0–32 for
+            pose, 0–20 for each hand) following the MediaPipe landmark ordering.
+          </li>
+          <li>
+            <strong>timestamp_iso</strong> – The time when the frame was
+            processed, in ISO-8601 format.
+          </li>
+          <li>
+            <strong>x_norm, y_norm, z_norm</strong> – Normalized coordinates in
+            the camera space (x and y are in [0,1] relative to the image
+            width/height; z is a depth-like value in normalized units).
+          </li>
+          <li>
+            <strong>visibility</strong> – For pose landmarks only: estimated
+            visibility of the landmark (0 to 1). Empty for hand landmarks.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      const videoFeed = document.getElementById("videoFeed");
+      const placeholder = document.getElementById("placeholder");
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const status = document.getElementById("status");
+      const downloadBtn = document.getElementById("downloadBtn");
+
+      let hasTracked = false; // Track if user has started tracking this session
+
+      function canDownload() {
+        if (!hasTracked) {
+          alert("Please start tracking first to record data.");
+          return false;
+        }
+        return true;
+      }
+
+      function startTracking() {
+        // Disable start button immediately to prevent double clicks
+        startBtn.disabled = true;
+        status.textContent = "🔄 Clearing previous data...";
+        status.className = "status inactive";
+
+        // Clear previous tracking data first
+        fetch("/clear_pose_data", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data.message);
+
+            // Now start the video feed
+            videoFeed.src = "/video_feed_pose_hand?" + new Date().getTime();
+            videoFeed.style.display = "block";
+            placeholder.style.display = "none";
+
+            // Update buttons
+            stopBtn.disabled = false;
+
+            // Update status
+            status.textContent = "🟢 Tracking active — data being recorded";
+            status.className = "status active";
+
+            // Enable download button
+            hasTracked = true;
+            downloadBtn.classList.remove("disabled");
+          })
+          .catch((err) => {
+            console.error("Failed to clear data:", err);
+            startBtn.disabled = false;
+            status.textContent = "❌ Failed to start tracking";
+            status.className = "status inactive";
+          });
+      }
+
+      function stopTracking() {
+        // Remove the video source to stop streaming
+        videoFeed.src = "";
+        videoFeed.style.display = "none";
+        placeholder.style.display = "block";
+
+        // Update buttons
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+
+        // Update status
+        status.textContent = "⏹️ Tracking stopped";
+        status.className = "status inactive";
+      }
+    </script>
+  </body>
+</html>

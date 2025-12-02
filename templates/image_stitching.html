@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Image Stitching Experiment</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f4f7;
+        text-align: center;
+        padding: 20px;
+      }
+      header {
+        background: #004aad;
+        color: white;
+        padding: 1rem;
+        margin-bottom: 20px;
+      }
+      input[type="file"] {
+        margin: 10px;
+      }
+      button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      img {
+        margin-top: 20px;
+        max-width: 90%;
+        border-radius: 10px;
+        border: 2px solid #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🧩 Image Stitching — Panorama Creation</h1>
+    </header>
+
+    <form id="stitchForm">
+      <p>
+        Select 4–8 images to create a panorama and place mobile_panorama.jpeg in
+        uploads folder for comparision:
+      </p>
+      <input
+        type="file"
+        id="images"
+        name="images"
+        accept="image/*"
+        multiple
+        required
+      />
+      <br />
+      <button type="submit">Stitch Images</button>
+    </form>
+
+    <div id="output"></div>
+
+    <script>
+      document
+        .getElementById("stitchForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const files = document.getElementById("images").files;
+          const formData = new FormData();
+          for (const f of files) formData.append("images", f);
+
+          document.getElementById("output").innerHTML =
+            "<p>⏳ Stitching in progress...</p>";
+          const res = await fetch("/process_image_stitching", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (data.error) {
+            document.getElementById(
+              "output"
+            ).innerHTML = `<p style='color:red;'>${data.error}</p>`;
+            return;
+          }
+
+          let html = `<h3>✅ Stitched Panorama</h3>
+              <img src="data:image/jpeg;base64,${data.stitched}" alt="Stitched Result"/>`;
+
+          if (data.mobile_found && data.combined) {
+            html += `<h3>🆚 Side-by-Side Comparison (Left: OpenCV, Right: Mobile)</h3>
+             <img src="data:image/jpeg;base64,${data.combined}" alt="Comparison"/>`;
+          } else {
+            html += `<p style='color:gray;'>ℹ️ No mobile panorama found in uploads folder.</p>`;
+          }
+
+          document.getElementById("output").innerHTML = html;
+        });
+    </script>
+  </body>
+</html>
