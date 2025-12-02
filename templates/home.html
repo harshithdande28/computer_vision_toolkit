@@ -2,71 +2,283 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Computer Vision Lab</title>
+    <title>Computer Vision Toolkit | Harshith Dande</title>
     <style>
-      body {
-        font-family: "Segoe UI", sans-serif;
-        background: #f0f4f7;
+      * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(
+          135deg,
+          #e8f4fc 0%,
+          #f0f4f7 50%,
+          #e1ecf4 100%
+        );
+        background-attachment: fixed;
+        min-height: 100vh;
         text-align: center;
+        position: relative;
       }
+
+      /* Decorative background pattern */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: radial-gradient(
+            circle at 10% 20%,
+            rgba(0, 74, 173, 0.05) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(0, 123, 255, 0.05) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 50% 50%,
+            rgba(0, 74, 173, 0.03) 0%,
+            transparent 70%
+          );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      /* Floating shapes decoration */
+      .decoration {
+        position: fixed;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          rgba(0, 123, 255, 0.1),
+          rgba(0, 74, 173, 0.05)
+        );
+        z-index: -1;
+        animation: float 8s ease-in-out infinite;
+      }
+      .decoration:nth-child(1) {
+        width: 100px;
+        height: 100px;
+        top: 10%;
+        left: 5%;
+        animation-delay: 0s;
+      }
+      .decoration:nth-child(2) {
+        width: 150px;
+        height: 150px;
+        top: 60%;
+        right: 5%;
+        animation-delay: 2s;
+      }
+      .decoration:nth-child(3) {
+        width: 80px;
+        height: 80px;
+        top: 30%;
+        right: 15%;
+        animation-delay: 4s;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-20px) rotate(5deg);
+        }
+      }
+
       header {
-        background: #004aad;
+        background: linear-gradient(135deg, #004aad 0%, #0056b3 100%);
         color: white;
-        padding: 1rem;
+        padding: 2rem 1rem;
+        box-shadow: 0 4px 20px rgba(0, 74, 173, 0.3);
       }
+
+      header h1 {
+        font-size: 2.2rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      header p {
+        font-size: 1rem;
+        opacity: 0.9;
+      }
+
       .container {
-        margin-top: 50px;
+        padding: 40px 30px 60px;
+        max-width: 1200px;
+        margin: 0 auto;
       }
+
+      .container > h2 {
+        font-size: 1.4rem;
+        color: #004aad;
+        margin-bottom: 30px;
+        font-weight: 500;
+      }
+
+      /* Grid layout for modules - 3 per row */
+      .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        padding: 10px;
+      }
+
       .module {
         background: white;
-        border-radius: 15px;
-        width: 60%;
-        margin: 20px auto;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 74, 173, 0.1);
+        padding: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 74, 173, 0.1);
+        display: flex;
+        flex-direction: column;
       }
+
+      .module:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 74, 173, 0.2);
+      }
+
       .module-title {
-        background: #007bff;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
         color: white;
-        font-size: 20px;
-        padding: 15px;
-        border-radius: 10px;
+        font-size: 1rem;
+        padding: 22px 18px;
         cursor: pointer;
-        transition: 0.3s;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        min-height: 85px;
       }
+
       .module-title:hover {
-        background: #0056b3;
-        transform: scale(1.03);
+        background: linear-gradient(135deg, #0056b3 0%, #004aad 100%);
       }
+
       .module-content {
         display: none;
-        margin-top: 20px;
-        animation: fadeIn 0.4s ease;
+        padding: 20px 15px;
+        animation: slideDown 0.4s ease;
+        background: linear-gradient(180deg, #e8f4fc 0%, white 100%);
+        flex-grow: 1;
       }
-      @keyframes fadeIn {
+
+      @keyframes slideDown {
         from {
           opacity: 0;
+          transform: translateY(-10px);
         }
         to {
           opacity: 1;
+          transform: translateY(0);
         }
       }
+
       button {
-        padding: 12px 25px;
-        margin: 10px;
-        font-size: 17px;
-        background: #007bff;
+        padding: 14px 20px;
+        margin: 8px 0;
+        font-size: 0.9rem;
+        background: linear-gradient(135deg, #007bff 0%, #0062cc 100%);
         color: white;
         border: none;
         border-radius: 10px;
         cursor: pointer;
-        transition: 0.3s;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 10px rgba(0, 123, 255, 0.3);
+        width: 100%;
+        display: block;
       }
+
       button:hover {
-        background: #0056b3;
-        transform: scale(1.05);
+        background: linear-gradient(135deg, #0056b3 0%, #004aad 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      form {
+        margin: 5px 0;
+      }
+
+      footer {
+        background: linear-gradient(135deg, #004aad 0%, #003380 100%);
+        color: white;
+        padding: 30px 20px;
+        margin-top: 50px;
+        box-shadow: 0 -4px 20px rgba(0, 74, 173, 0.2);
+      }
+
+      footer a {
+        color: white;
+        text-decoration: none;
+        margin: 0 15px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        display: inline-block;
+      }
+
+      footer a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      /* Cloud banner */
+      #cloud-banner {
+        background: linear-gradient(135deg, #ff9800, #f57c00);
+        box-shadow: 0 2px 10px rgba(255, 152, 0, 0.3);
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .modules-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        header h1 {
+          font-size: 1.6rem;
+        }
+        .container {
+          padding: 30px 15px;
+        }
+        .modules-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+        .module-title {
+          font-size: 0.95rem;
+          padding: 18px 15px;
+          min-height: auto;
+        }
+        button {
+          padding: 12px 16px;
+          font-size: 0.85rem;
+        }
+        .decoration {
+          display: none;
+        }
       }
     </style>
     <script>
@@ -78,11 +290,14 @@
   </head>
 
   <body>
+    <!-- Decorative floating shapes -->
+    <div class="decoration"></div>
+    <div class="decoration"></div>
+    <div class="decoration"></div>
+
     <header>
-      <h1>Computer Vision Toolkit</h1>
-      <p style="margin: 5px 0 0 0; font-size: 14px; opacity: 0.85">
-        by Lourdu Gnana Harshith Dande
-      </p>
+      <h1>🔬 Computer Vision Toolkit</h1>
+      <p>by Lourdu Gnana Harshith Dande</p>
     </header>
 
     <!-- Cloud Mode Banner -->
@@ -119,164 +334,128 @@
     </script>
 
     <div class="container">
-      <h2>Select a Module</h2>
+      <h2>Explore Computer Vision Experiments</h2>
 
-      <!-- MODULE 1 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module1')">
-          🧩 Module 1: Camera Calibration & Projection
+      <div class="modules-grid">
+        <!-- MODULE 1 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module1')">
+            🧩 Module 1: Camera Calibration
+          </div>
+          <div class="module-content" id="module1">
+            <form action="{{ url_for('perspective_projection') }}">
+              <button type="submit">📐 Perspective Projection</button>
+            </form>
+          </div>
         </div>
-        <div class="module-content" id="module1">
-          <form action="{{ url_for('perspective_projection') }}">
-            <button type="submit">📐 Perspective Projection</button>
-          </form>
-        </div>
-      </div>
 
-      <!-- MODULE 2 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module2')">
-          ⚙️ Module 2: Image Processing & Detection
+        <!-- MODULE 2 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module2')">
+            ⚙️ Module 2: Image Processing
+          </div>
+          <div class="module-content" id="module2">
+            <form action="{{ url_for('gaussian_blur_nd_fourier_transform') }}">
+              <button type="submit">🔍 Gaussian Blur & Fourier</button>
+            </form>
+            <form action="{{ url_for('template_matching') }}">
+              <button type="submit">🎯 Template Matching</button>
+            </form>
+          </div>
         </div>
-        <div class="module-content" id="module2">
-          <form action="{{ url_for('gaussian_blur_nd_fourier_transform') }}">
-            <button type="submit">🔍 Gaussian Blur & Fourier Transform</button>
-          </form>
 
-          <form action="{{ url_for('template_matching') }}">
-            <button type="submit">🎯 Template Matching</button>
-          </form>
+        <!-- MODULE 3 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module3')">
+            🧠 Module 3: Edge & Corner Detection
+          </div>
+          <div class="module-content" id="module3">
+            <form action="{{ url_for('gradient_and_log') }}">
+              <button type="submit">📈 Gradient & LoG</button>
+            </form>
+            <form action="{{ url_for('double_threshold_edges') }}">
+              <button type="submit">🧮 Edge Detection</button>
+            </form>
+            <form action="{{ url_for('manual_corners') }}">
+              <button type="submit">🔴 Corner Detection</button>
+            </form>
+            <form action="{{ url_for('boundary_detection') }}">
+              <button type="submit">🧩 Boundary Detection</button>
+            </form>
+            <form action="{{ url_for('aruco_segmentation') }}">
+              <button type="submit">📍 ArUco Segmentation</button>
+            </form>
+          </div>
         </div>
-      </div>
 
-      <!-- MODULE 3 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module3')">
-          🧠 Module 3: Gradient & Laplacian of Gaussian
+        <!-- MODULE 4 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module4')">
+            🌄 Module 4: Image Stitching
+          </div>
+          <div class="module-content" id="module4">
+            <form action="{{ url_for('image_stitching') }}">
+              <button type="submit">🧵 Panorama Stitching</button>
+            </form>
+            <form action="{{ url_for('sift_feature_matching') }}">
+              <button type="submit">🔍 SIFT + RANSAC</button>
+            </form>
+          </div>
         </div>
-        <div class="module-content" id="module3">
-          <form action="{{ url_for('gradient_and_log') }}">
-            <button type="submit">
-              📈 Gradient Images & Laplacian of Gaussian
-            </button>
-          </form>
-          <form action="{{ url_for('double_threshold_edges') }}">
-            <button type="submit">
-              🧮 Manual Edge Detection (Double Thresholding)
-            </button>
-          </form>
-          <form action="{{ url_for('manual_corners') }}">
-            <button type="submit">🔴 Manual Corner Detection</button>
-          </form>
-          <form action="{{ url_for('boundary_detection') }}">
-            <button type="submit">
-              🧩 Boundary Detection (Select Object ROI)
-            </button>
-          </form>
-          <form action="{{ url_for('aruco_segmentation') }}">
-            <button type="submit">🧩 ArUco-Based Object Segmentation</button>
-          </form>
+
+        <!-- MODULE 5 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module5')">
+            🎥 Module 5-6: Real-Time Tracking
+          </div>
+          <div class="module-content" id="module5">
+            <form action="{{ url_for('module5_marker') }}">
+              <button type="submit">📦 Marker Tracking</button>
+            </form>
+            <form action="{{ url_for('module5_markerless') }}">
+              <button type="submit">🎯 Markerless Tracking</button>
+            </form>
+            <form action="{{ url_for('module5_sam2') }}">
+              <button type="submit">🧠 SAM2 Segmentation</button>
+            </form>
+          </div>
         </div>
-      </div>
 
-      <!-- MODULE 4 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module4')">
-          🌄 Module 4: Image Stitching (Panorama Creation)
-        </div>
-        <div class="module-content" id="module4">
-          <form action="{{ url_for('image_stitching') }}">
-            <button type="submit">🧵 Image Stitching Experiment</button>
-          </form>
-          <form action="{{ url_for('sift_feature_matching') }}">
-            <button type="submit">🔍 SIFT Feature Extraction + RANSAC</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- MODULE 5 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module5')">
-          🎥 Module 5-6 : Real-Time Object Tracking
-        </div>
-        <div class="module-content" id="module5">
-          <form action="{{ url_for('module5_marker') }}">
-            <button type="submit">📦 Marker-Based Tracking (QR/Aruco)</button>
-          </form>
-
-          <form action="{{ url_for('module5_markerless') }}">
-            <button type="submit">🎯 Markerless Tracking</button>
-          </form>
-
-          <form action="{{ url_for('module5_sam2') }}">
-            <button type="submit">🧠 SAM2 Segmentation Tracking</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- MODULE 7 -->
-      <div class="module">
-        <div class="module-title" onclick="toggleModule('module7')">
-          📏 Module 7: Stereo-Based Object Size Estimation
-        </div>
-        <div class="module-content" id="module7">
-          <form action="{{ url_for('stereo_calibration') }}">
-            <button type="submit">🎯 Stereo Calibration (Generate .npz)</button>
-          </form>
-
-          <form action="{{ url_for('stereo_size_estimation') }}">
-            <button type="submit">📐 Stereo Object Size Measurement</button>
-          </form>
-
-          <!-- ➕ NEW: Pose & Hand Tracking -->
-          <form action="{{ url_for('pose_hand_tracking') }}">
-            <button type="submit">🧍‍♀️ Real-Time Pose & Hand Tracking</button>
-          </form>
+        <!-- MODULE 7 -->
+        <div class="module">
+          <div class="module-title" onclick="toggleModule('module7')">
+            📏 Module 7: Stereo & Pose
+          </div>
+          <div class="module-content" id="module7">
+            <form action="{{ url_for('stereo_calibration') }}">
+              <button type="submit">🎯 Stereo Calibration</button>
+            </form>
+            <form action="{{ url_for('stereo_size_estimation') }}">
+              <button type="submit">📐 Size Estimation</button>
+            </form>
+            <form action="{{ url_for('pose_hand_tracking') }}">
+              <button type="submit">🧍 Pose & Hand Tracking</button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Footer with Creator Info -->
-    <footer
-      style="
-        background: #004aad;
-        color: white;
-        padding: 20px;
-        margin-top: 50px;
-        text-align: center;
-      "
-    >
-      <p style="margin: 0; font-size: 16px">
+    <footer>
+      <p style="margin: 0; font-size: 1.1rem; font-weight: 500">
         Built by <strong>Lourdu Gnana Harshith Dande</strong>
       </p>
-      <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.8">
+      <p style="margin: 10px 0 20px 0; font-size: 0.9rem; opacity: 0.8">
         Computer Vision Toolkit | 2025
       </p>
-      <div style="margin-top: 12px">
-        <a
-          href="https://github.com/harshithdande28"
-          target="_blank"
-          style="
-            color: white;
-            margin: 0 10px;
-            text-decoration: none;
-            font-size: 14px;
-          "
+      <div>
+        <a href="https://github.com/harshithdande28" target="_blank"
+          >🔗 GitHub</a
         >
-          🔗 GitHub
-        </a>
-        <a
-          href="https://linkedin.com/in/harshithdande"
-          target="_blank"
-          style="
-            color: white;
-            margin: 0 10px;
-            text-decoration: none;
-            font-size: 14px;
-          "
+        <a href="https://linkedin.com/in/harshithdande" target="_blank"
+          >💼 LinkedIn</a
         >
-          💼 LinkedIn
-        </a>
       </div>
     </footer>
   </body>

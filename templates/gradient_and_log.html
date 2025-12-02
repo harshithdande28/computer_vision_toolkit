@@ -52,6 +52,21 @@
       .image-set h4 {
         margin-bottom: 10px;
       }
+      .instructions {
+        margin: 0 auto 25px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions strong {
+        color: #004aad;
+      }
     </style>
   </head>
 
@@ -61,6 +76,15 @@
     </header>
 
     <div class="container">
+      <div class="instructions">
+        <strong>🎨 What this experiment does:</strong><br>
+        Computes gradient magnitude, gradient angle, and Laplacian of Gaussian (LoG) for edge and feature detection.<br><br>
+        <strong>📋 How to use:</strong><br>
+        1. Upload one or more images (JPG, PNG, etc.)<br>
+        2. Click "Process" to analyze the images<br>
+        3. View the original, gradient magnitude, gradient angle, and LoG results for each image
+      </div>
+
       <form id="uploadForm" enctype="multipart/form-data" method="POST">
         <h3>Upload Images</h3>
         <label>
@@ -109,5 +133,26 @@
         });
       });
     </script>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

@@ -35,10 +35,35 @@
         border: 2px solid #ddd;
         border-radius: 10px;
       }
+      .instructions {
+        margin: 20px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions strong {
+        color: #004aad;
+      }
     </style>
   </head>
   <body>
     <header><h1>🔍 SIFT Feature Extraction + RANSAC Optimization</h1></header>
+
+    <div class="instructions">
+      <strong>🔗 What this experiment does:</strong><br>
+      Extracts SIFT (Scale-Invariant Feature Transform) keypoints from two images and matches them using RANSAC for robust outlier rejection.<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. Upload two overlapping images (e.g., two photos of the same scene from slightly different angles)<br>
+      2. Click "Run SIFT + RANSAC" to find and match features<br>
+      3. Compare our implementation vs OpenCV's built-in SIFT matching
+    </div>
+
     <form id="siftForm" enctype="multipart/form-data">
       <p>Upload two overlapping images:</p>
       <input type="file" name="image1" accept="image/*" required />
@@ -74,5 +99,26 @@
           document.getElementById("output").innerHTML = html;
         });
     </script>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

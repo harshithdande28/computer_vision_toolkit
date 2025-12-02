@@ -28,14 +28,51 @@
         cursor: pointer;
         font-size: 16px;
       }
-      button:hover {
+      button:hover:not(:disabled) {
         background: #0056b3;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .btn-compare {
+        background: #28a745;
+      }
+      .btn-compare:hover:not(:disabled) {
+        background: #218838;
       }
       img {
         margin-top: 20px;
         max-width: 90%;
         border-radius: 10px;
         border: 2px solid #ddd;
+      }
+      .upload-section {
+        background: white;
+        padding: 15px 20px;
+        margin: 15px auto;
+        max-width: 500px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      }
+      .upload-section p {
+        margin: 0 0 10px 0;
+        color: #333;
+      }
+      .instructions {
+        margin: 0 auto 25px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions strong {
+        color: #004aad;
       }
     </style>
   </head>
@@ -44,11 +81,18 @@
       <h1>🧩 Image Stitching — Panorama Creation</h1>
     </header>
 
-    <form id="stitchForm">
-      <p>
-        Select 4–8 images to create a panorama and place mobile_panorama.jpeg in
-        uploads folder for comparision:
-      </p>
+    <div class="instructions">
+      <strong>🌄 What this experiment does:</strong><br>
+      Stitches multiple overlapping images together to create a seamless panorama using feature matching and homography.<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. Select 4–8 overlapping images taken from the same location (rotate camera, don't move)<br>
+      2. Click "Stitch Images" to create a panorama<br>
+      3. Optionally, upload a mobile phone panorama (any filename) and click "Compare" to see side-by-side comparison
+    </div>
+
+    <!-- Step 1: Upload and Stitch -->
+    <div class="upload-section">
+      <p><strong>Step 1:</strong> Select images to create a panorama:</p>
       <input
         type="file"
         id="images"
@@ -57,48 +101,128 @@
         multiple
         required
       />
-      <br />
-      <button type="submit">Stitch Images</button>
-    </form>
+      <br /><br />
+      <button id="stitchBtn" onclick="stitchImages()">🧩 Stitch Images</button>
+    </div>
 
-    <div id="output"></div>
+    <!-- Stitched Result -->
+    <div id="stitchOutput"></div>
+
+    <!-- Step 2: Compare with Mobile (shown after stitching) -->
+    <div id="compareSection" class="upload-section" style="display: none;">
+      <p><strong>Step 2 (Optional):</strong> Upload mobile panorama for comparison:</p>
+      <input
+        type="file"
+        id="mobilePanorama"
+        name="mobile_panorama"
+        accept="image/*"
+        onchange="checkMobileUpload()"
+      />
+        <small style="color: #666; display: block; margin-top: 5px;">Upload any panorama image from your phone (any filename works)</small>
+      <br />
+      <button id="compareBtn" onclick="comparePanoramas()" disabled class="btn-compare">🆚 Compare</button>
+    </div>
+
+    <!-- Comparison Result -->
+    <div id="compareOutput"></div>
 
     <script>
-      document
-        .getElementById("stitchForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const files = document.getElementById("images").files;
-          const formData = new FormData();
-          for (const f of files) formData.append("images", f);
+      let stitchedImageData = null;
 
-          document.getElementById("output").innerHTML =
-            "<p>⏳ Stitching in progress...</p>";
-          const res = await fetch("/process_image_stitching", {
-            method: "POST",
-            body: formData,
-          });
-          const data = await res.json();
+      async function stitchImages() {
+        const files = document.getElementById("images").files;
+        if (!files || files.length < 2) {
+          alert("Please select at least 2 images for stitching.");
+          return;
+        }
 
-          if (data.error) {
-            document.getElementById(
-              "output"
-            ).innerHTML = `<p style='color:red;'>${data.error}</p>`;
-            return;
-          }
+        const formData = new FormData();
+        for (const f of files) formData.append("images", f);
 
-          let html = `<h3>✅ Stitched Panorama</h3>
-              <img src="data:image/jpeg;base64,${data.stitched}" alt="Stitched Result"/>`;
+        document.getElementById("stitchOutput").innerHTML = "<p>⏳ Stitching in progress...</p>";
+        document.getElementById("compareSection").style.display = "none";
+        document.getElementById("compareOutput").innerHTML = "";
 
-          if (data.mobile_found && data.combined) {
-            html += `<h3>🆚 Side-by-Side Comparison (Left: OpenCV, Right: Mobile)</h3>
-             <img src="data:image/jpeg;base64,${data.combined}" alt="Comparison"/>`;
-          } else {
-            html += `<p style='color:gray;'>ℹ️ No mobile panorama found in uploads folder.</p>`;
-          }
-
-          document.getElementById("output").innerHTML = html;
+        const res = await fetch("/process_image_stitching", {
+          method: "POST",
+          body: formData,
         });
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById("stitchOutput").innerHTML = `<p style='color:red;'>${data.error}</p>`;
+          return;
+        }
+
+        // Store stitched image for later comparison
+        stitchedImageData = data.stitched;
+
+        document.getElementById("stitchOutput").innerHTML = `
+          <h3>✅ Stitched Panorama</h3>
+          <img src="data:image/jpeg;base64,${data.stitched}" alt="Stitched Result"/>
+        `;
+
+        // Show the compare section
+        document.getElementById("compareSection").style.display = "block";
+        document.getElementById("mobilePanorama").value = "";
+        document.getElementById("compareBtn").disabled = true;
+      }
+
+      function checkMobileUpload() {
+        const mobilePanorama = document.getElementById("mobilePanorama").files[0];
+        document.getElementById("compareBtn").disabled = !mobilePanorama;
+      }
+
+      async function comparePanoramas() {
+        const mobilePanorama = document.getElementById("mobilePanorama").files[0];
+        if (!mobilePanorama || !stitchedImageData) {
+          alert("Please upload a mobile panorama first.");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("stitched_b64", stitchedImageData);
+        formData.append("mobile_panorama", mobilePanorama);
+
+        document.getElementById("compareOutput").innerHTML = "<p>⏳ Generating comparison...</p>";
+
+        const res = await fetch("/compare_panoramas", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          document.getElementById("compareOutput").innerHTML = `<p style='color:red;'>${data.error}</p>`;
+          return;
+        }
+
+        document.getElementById("compareOutput").innerHTML = `
+          <h3>🆚 Side-by-Side Comparison (Left: OpenCV, Right: Mobile)</h3>
+          <img src="data:image/jpeg;base64,${data.combined}" alt="Comparison"/>
+        `;
+      }
     </script>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

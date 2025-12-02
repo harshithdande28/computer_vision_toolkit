@@ -107,18 +107,21 @@
             margin: 10px 0;
         }
 
-        a.back-btn {
+        .back-home {
             display: inline-block;
-            margin: 20px 0;
+            margin: 30px auto;
             padding: 12px 25px;
-            background: #007bff;
-            color: white;
-            border-radius: 10px;
+            color: #004aad;
             text-decoration: none;
-            font-size: 16px;
+            font-weight: bold;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: 0.3s;
         }
-        a.back-btn:hover {
-            background: #0056b3;
+        .back-home:hover {
+            background: #004aad;
+            color: white;
         }
     </style>
 </head>
@@ -173,7 +176,7 @@
         <div id="streamArea" class="stream-container"></div>
     </div>
 
-    <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+    <a href="/" class="back-home">← Back to Home</a>
 </div>
 
 <script>

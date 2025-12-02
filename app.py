@@ -839,69 +839,110 @@ def image_stitching():
 @app.route("/process_image_stitching", methods=["POST"])
 def process_image_stitching():
     """
-    Perform panorama stitching on images named 'stitch-*' or uploaded,
+    Perform panorama stitching on uploaded images,
     save result as 'stitched_result.jpg', and display side-by-side comparison
-    with 'mobile_panorama.jpg' if available.
+    with mobile panorama if provided (uploaded or from uploads folder).
     """
     import base64
     import cv2
     import numpy as np
     import os
 
-    # --- Step 1: Handle upload (optional) ---
+    # --- Step 1: Handle uploaded images ---
     files = request.files.getlist("images")
-    if files:
-        for f in files:
-            f.save(os.path.join("uploads", f.filename))
+    if not files or len(files) < 2:
+        return jsonify({"error": "Please upload at least 2 images for stitching."}), 400
 
-    # --- Step 2: Collect all stitch-* images ---
-    image_files = sorted([
-        f for f in os.listdir("uploads")
-        if f.lower().startswith("stitch-") and f.lower().endswith((".jpg", ".jpeg", ".png"))
-    ])
+    # Read images directly from upload without saving
+    imgs = []
+    image_names = []
+    for f in files:
+        if f.filename:
+            # Read image from file stream
+            file_bytes = np.frombuffer(f.read(), np.uint8)
+            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            if img is not None:
+                imgs.append(img)
+                image_names.append(f.filename)
 
-    if len(image_files) < 2:
-        return jsonify({"error": "Please ensure at least 2 images named 'stitch-1', 'stitch-2', ... are in uploads."}), 400
+    if len(imgs) < 2:
+        return jsonify({"error": "Could not read at least 2 valid images."}), 400
 
-    imgs = [cv2.imread(os.path.join("uploads", f)) for f in image_files if cv2.imread(os.path.join("uploads", f)) is not None]
-
-    # --- Step 3: Perform Stitching ---
+    # --- Step 2: Perform Stitching ---
     stitcher = cv2.Stitcher_create(cv2.Stitcher_PANORAMA)
     status, stitched = stitcher.stitch(imgs)
     if status != cv2.Stitcher_OK:
-        return jsonify({"error": f"Stitching failed (code {status})"}), 400
+        error_messages = {
+            1: "Need more images or images don't have enough overlap",
+            2: "Homography estimation failed",
+            3: "Camera parameters adjustment failed"
+        }
+        err_msg = error_messages.get(status, f"Unknown error (code {status})")
+        return jsonify({"error": f"Stitching failed: {err_msg}"}), 400
 
-    # --- Step 4: Save stitched output ---
+    # --- Step 3: Save stitched output ---
     stitched_path = os.path.join("uploads", "stitched_result.jpg")
     cv2.imwrite(stitched_path, stitched)
 
-    # --- Step 5: Try to load mobile panorama if it exists ---
-    mobile_path = os.path.join("uploads", "mobile_panorama.jpeg")
-    stitched_img = cv2.imread(stitched_path)
-    mobile_img = cv2.imread(mobile_path) if os.path.exists(mobile_path) else None
-
-    # Resize for consistent height
+    # --- Step 4: Resize and encode stitched image to Base64 ---
     height = 400
-    stitched_resized = cv2.resize(stitched_img, (int(stitched_img.shape[1] * height / stitched_img.shape[0]), height))
-    if mobile_img is not None:
-        mobile_resized = cv2.resize(mobile_img, (int(mobile_img.shape[1] * height / mobile_img.shape[0]), height))
-        combined = np.hstack((stitched_resized, mobile_resized))
-        _, buf_combined = cv2.imencode(".jpg", combined)
-        combined_b64 = base64.b64encode(buf_combined).decode("utf-8")
-    else:
-        combined_b64 = None
-
-    # --- Step 6: Encode individual images to Base64 ---
+    stitched_resized = cv2.resize(stitched, (int(stitched.shape[1] * height / stitched.shape[0]), height))
     _, buf_stitched = cv2.imencode(".jpg", stitched_resized)
     stitched_b64 = base64.b64encode(buf_stitched).decode("utf-8")
 
     stitched_info = {
         "stitched": stitched_b64,
-        "combined": combined_b64,
-        "files_used": image_files,
-        "mobile_found": mobile_img is not None
+        "files_used": image_names
     }
     return jsonify(stitched_info)
+
+
+@app.route("/compare_panoramas", methods=["POST"])
+def compare_panoramas():
+    """
+    Compare stitched panorama with uploaded mobile panorama.
+    Expects stitched_b64 (base64 string) and mobile_panorama (file).
+    """
+    import base64
+    import cv2
+    import numpy as np
+
+    # Get the stitched image from base64
+    stitched_b64 = request.form.get("stitched_b64")
+    if not stitched_b64:
+        return jsonify({"error": "No stitched image provided."}), 400
+
+    # Decode stitched image from base64
+    stitched_bytes = base64.b64decode(stitched_b64)
+    stitched_arr = np.frombuffer(stitched_bytes, np.uint8)
+    stitched_img = cv2.imdecode(stitched_arr, cv2.IMREAD_COLOR)
+
+    if stitched_img is None:
+        return jsonify({"error": "Could not decode stitched image."}), 400
+
+    # Get the mobile panorama file
+    mobile_file = request.files.get("mobile_panorama")
+    if not mobile_file or not mobile_file.filename:
+        return jsonify({"error": "No mobile panorama uploaded."}), 400
+
+    file_bytes = np.frombuffer(mobile_file.read(), np.uint8)
+    mobile_img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+    if mobile_img is None:
+        return jsonify({"error": "Could not read mobile panorama image."}), 400
+
+    # Resize both to same height for comparison
+    height = 400
+    stitched_resized = cv2.resize(stitched_img, (int(stitched_img.shape[1] * height / stitched_img.shape[0]), height))
+    mobile_resized = cv2.resize(mobile_img, (int(mobile_img.shape[1] * height / mobile_img.shape[0]), height))
+
+    # Combine side by side
+    combined = np.hstack((stitched_resized, mobile_resized))
+    _, buf_combined = cv2.imencode(".jpg", combined)
+    combined_b64 = base64.b64encode(buf_combined).decode("utf-8")
+
+    return jsonify({"combined": combined_b64})
+
 
 # ==============================================================
 # MODULE 4B — SIFT FEATURE EXTRACTION + RANSAC OPTIMIZATION

@@ -63,6 +63,21 @@
         font-size: 16px;
         color: #333;
       }
+      .instructions {
+        margin: 0 auto 25px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions strong {
+        color: #004aad;
+      }
     </style>
   </head>
 
@@ -72,6 +87,15 @@
     </header>
 
     <div class="container">
+      <div class="instructions">
+        <strong>📐 What this experiment does:</strong><br>
+        Detects corners in images using a manual implementation of corner detection algorithms (Harris-like corner response).<br><br>
+        <strong>📋 How to use:</strong><br>
+        1. Upload one or more images with visible corners (buildings, chessboards, objects with sharp edges)<br>
+        2. Click "Process" to detect corners<br>
+        3. View the grayscale original and detected corners marked in red
+      </div>
+
       <form id="uploadForm" enctype="multipart/form-data" method="POST">
         <h3>Upload One or More Images</h3>
         <label> <input type="file" name="images" multiple required /></label>
@@ -120,5 +144,26 @@
         });
       });
     </script>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

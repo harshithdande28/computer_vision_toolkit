@@ -38,7 +38,7 @@
       display: none;
       pointer-events: none;
     }
-    button, a.back-btn {
+    button {
       padding: 12px 25px;
       background: #007bff;
       color: white;
@@ -50,9 +50,25 @@
       margin: 10px;
       transition: 0.3s;
     }
-    button:hover, .back-btn:hover {
+    button:hover {
       background: #0056b3;
       transform: scale(1.05);
+    }
+    .back-home {
+      display: inline-block;
+      margin: 30px auto;
+      padding: 12px 25px;
+      color: #004aad;
+      text-decoration: none;
+      font-weight: bold;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: 0.3s;
+    }
+    .back-home:hover {
+      background: #004aad;
+      color: white;
     }
     .btn-reset {
       background: #dc3545;
@@ -96,7 +112,7 @@
       <li>Open <code>http://localhost:5000</code></li>
     </ol>
     <br>
-    <a href="/module5" class="back-btn" style="background:white; color:#ff5252;">⬅ Back to Module 5</a>
+    <a href="/" class="back-home">← Back to Home</a>
   </div>
   
   <div id="main-content">
@@ -121,7 +137,7 @@
   </div>
 
   <br/><br/>
-  <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+  <a href="/" class="back-home">← Back to Home</a>
 </div>
 
 <script>

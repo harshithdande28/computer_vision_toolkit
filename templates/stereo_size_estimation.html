@@ -90,11 +90,37 @@
         font-weight: bold;
         color: #004aad;
       }
+
+      .instructions {
+        margin: 20px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions strong {
+        color: #004aad;
+      }
     </style>
   </head>
 
   <body>
     <header>Stereo Object Size Estimation (ROI-Based)</header>
+
+    <div class="instructions">
+      <strong>📐 What this experiment does:</strong><br>
+      Estimates the real-world size (width × height) of an object using stereo vision and disparity mapping.<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. Upload a LEFT stereo image and a RIGHT stereo image (taken simultaneously)<br>
+      2. Upload the stereo calibration file (.npz) generated from Stereo Calibration<br>
+      3. Draw a rectangle (ROI) around the object you want to measure<br>
+      4. View the estimated real-world dimensions of the object
+    </div>
 
     <div class="card">
       <h2>Upload Stereo Pair + Calibration File</h2>
@@ -199,5 +225,26 @@
     </div>
 
     {% endif %}
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

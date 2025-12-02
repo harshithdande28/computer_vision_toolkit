@@ -137,11 +137,38 @@
       .status.inactive {
         color: #666;
       }
+
+      .instructions-box {
+        margin: 20px auto;
+        max-width: 650px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+      .instructions-box strong {
+        color: #004aad;
+      }
     </style>
   </head>
 
   <body>
     <header>Real-Time Pose & Hand Tracking (MediaPipe)</header>
+
+    <div class="instructions-box">
+      <strong>🤸 What this experiment does:</strong><br>
+      Uses MediaPipe to detect and track human body poses and hand landmarks in real-time via webcam.<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. Click "Start Tracking" to activate the webcam<br>
+      2. Stand in view of the camera to see pose landmarks (skeleton)<br>
+      3. Show your hands to see hand landmark detection<br>
+      4. Download CSV files containing the tracked landmark coordinates for analysis<br><br>
+      <strong>⚠️ Note:</strong> This feature requires a local webcam and MediaPipe installation.
+    </div>
 
     <!-- Cloud Mode Warning -->
     <div id="cloud-warning" class="container" style="display:none; background:#ff5252; color:white;">
@@ -325,5 +352,26 @@
         status.className = "status inactive";
       }
     </script>
+
+    <a href="/" class="back-home">← Back to Home</a>
+
+    <style>
+      .back-home {
+        display: inline-block;
+        margin: 30px auto;
+        padding: 12px 25px;
+        color: #004aad;
+        text-decoration: none;
+        font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
+      }
+      .back-home:hover {
+        background: #004aad;
+        color: white;
+      }
+    </style>
   </body>
 </html>

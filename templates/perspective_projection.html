@@ -118,14 +118,37 @@
 
       .back-home {
         display: inline-block;
-        margin-top: 25px;
+        margin: 30px auto;
+        padding: 12px 25px;
         color: #004aad;
         text-decoration: none;
         font-weight: bold;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: 0.3s;
       }
 
       .back-home:hover {
-        text-decoration: underline;
+        background: #004aad;
+        color: white;
+      }
+
+      .instructions {
+        margin: 0 auto 25px auto;
+        max-width: 700px;
+        font-size: 14px;
+        color: #555;
+        line-height: 1.7;
+        background: #e8f4fd;
+        padding: 20px 25px;
+        border-radius: 10px;
+        border-left: 4px solid #004aad;
+        text-align: left;
+      }
+
+      .instructions strong {
+        color: #004aad;
       }
     </style>
   </head>
@@ -134,6 +157,15 @@
     <header>
       <h1>Real World Distance using Perspective Projection</h1>
     </header>
+
+    <div class="instructions">
+      <strong>📏 What this experiment does:</strong><br>
+      Calculates real-world distances between points in an image using camera calibration and perspective projection.<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. <strong>Step 1:</strong> Upload multiple chessboard (9×7) images to calibrate your camera<br>
+      2. <strong>Step 2:</strong> Enter the distance between the camera and object<br>
+      3. <strong>Step 3:</strong> Upload an image and click two points to measure the real-world distance between them
+    </div>
 
     <!-- Step 1: Calibration -->
     <fieldset id="step1">

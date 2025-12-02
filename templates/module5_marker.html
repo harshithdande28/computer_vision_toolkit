@@ -20,26 +20,71 @@
         .container {
             margin-top: 30px;
         }
-        video, img {
+        .video-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px auto;
+        }
+        video, img#video-feed {
             border: 4px solid #004aad;
             border-radius: 15px;
             width: 80%;
             max-width: 900px;
+            display: none;
+            margin: 0 auto;
         }
-        a.back-btn {
-            display: inline-block;
-            margin-top: 25px;
+        button {
             padding: 12px 25px;
             background: #007bff;
             color: white;
             text-decoration: none;
             border-radius: 10px;
-            transition: 0.3s;
+            border: none;
             font-size: 18px;
+            cursor: pointer;
+            margin: 10px;
+            transition: 0.3s;
         }
-        a.back-btn:hover {
+        button:hover {
             background: #0056b3;
             transform: scale(1.05);
+        }
+        .btn-stop {
+            background: #dc3545;
+        }
+        .btn-stop:hover {
+            background: #b02a37;
+        }
+        .instructions {
+            margin: 15px auto;
+            max-width: 600px;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+        .status {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .status.waiting { color: #666; }
+        .status.active { color: #28a745; }
+        .back-home {
+            display: inline-block;
+            margin: 30px auto;
+            padding: 12px 25px;
+            color: #004aad;
+            text-decoration: none;
+            font-weight: bold;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: 0.3s;
+        }
+        .back-home:hover {
+            background: #004aad;
+            color: white;
         }
     </style>
 </head>
@@ -64,17 +109,58 @@
             <li>Run <code>python app.py</code></li>
             <li>Open <code>http://localhost:5000</code></li>
         </ol>
+        <br>
+        <a href="/" class="back-home">← Back to Home</a>
     </div>
 
+    <div id="main-content">
+        <div class="instructions">
+            <strong>How to use:</strong><br>
+            1. Click "Start Detection" to activate the camera<br>
+            2. Hold ArUco markers or QR codes in front of the camera<br>
+            3. The system will detect and highlight markers in real-time
+        </div>
+
+        <div>
+            <button id="startBtn" onclick="startDetection()">▶ Start Detection</button>
+            <button id="stopBtn" class="btn-stop" onclick="stopDetection()" style="display:none;">⏹ Stop Detection</button>
+        </div>
+    </div>
+
+    <p id="status" class="status waiting">⏸️ Camera not started</p>
+
     <!-- STREAMING VIDEO FEED -->
-    <img id="video-feed" src="{{ url_for('video_feed_marker') }}" alt="Marker Tracking Stream" onerror="showCloudWarning()">
+    <div class="video-wrapper">
+        <img id="video-feed" alt="Marker Tracking Stream">
+    </div>
 
     <script>
         function showCloudWarning() {
             document.getElementById('cloud-warning').style.display = 'block';
+            document.getElementById('main-content').style.display = 'none';
             document.getElementById('video-feed').style.display = 'none';
+            document.getElementById('status').style.display = 'none';
         }
-        // Also check via API
+
+        function startDetection() {
+            document.getElementById('video-feed').src = '/video_feed_marker?' + Date.now();
+            document.getElementById('video-feed').style.display = 'block';
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            document.getElementById('status').textContent = '🟢 Detection active — show markers to camera';
+            document.getElementById('status').className = 'status active';
+        }
+
+        function stopDetection() {
+            document.getElementById('video-feed').src = '';
+            document.getElementById('video-feed').style.display = 'none';
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('status').textContent = '⏸️ Camera stopped';
+            document.getElementById('status').className = 'status waiting';
+        }
+
+        // Check via API if running on cloud
         fetch('/api/status')
             .then(res => res.json())
             .then(data => {
@@ -85,7 +171,7 @@
 
     <!-- BACK BUTTON -->
     <br><br>
-    <a href="/module5" class="back-btn">⬅ Back to Module 5</a>
+    <a href="/" class="back-home">← Back to Home</a>
 </div>
 
 </body>
