@@ -1,0 +1,473 @@
+================================================================================
+       OBJECT SIZE ESTIMATION USING UNCALIBRATED STEREO
+                    Complete Derivation and Procedure
+================================================================================
+
+PROBLEM STATEMENT:
+------------------
+Estimate the size of an object (width, height, diameter, or polygon edges) 
+using UNCALIBRATED STEREO, where camera intrinsic and extrinsic parameters 
+are NOT known beforehand.
+
+
+================================================================================
+PART 1: BACKGROUND - CALIBRATED vs UNCALIBRATED STEREO
+================================================================================
+
+CALIBRATED STEREO (What we implemented):
+- Camera matrix K (intrinsic parameters) is known
+- Baseline B (distance between cameras) is known
+- Focal length f is known
+- Disparity d = x_left - x_right
+- Depth Z = (f × B) / d
+- Real size = (pixel_size × Z) / f
+
+UNCALIBRATED STEREO (What we need to derive):
+- Camera parameters are UNKNOWN
+- Must estimate relative geometry from image correspondences
+- Uses Fundamental Matrix F instead of calibration parameters
+
+
+================================================================================
+PART 2: FUNDAMENTAL MATRIX - THE KEY TO UNCALIBRATED STEREO
+================================================================================
+
+DEFINITION:
+-----------
+The Fundamental Matrix F is a 3×3 matrix that encapsulates the epipolar 
+geometry between two uncalibrated cameras.
+
+For corresponding points x (in left image) and x' (in right image):
+
+                    x'ᵀ F x = 0
+
+Where:
+- x = [u, v, 1]ᵀ  (homogeneous coordinates in left image)
+- x' = [u', v', 1]ᵀ (homogeneous coordinates in right image)
+- F is a 3×3 matrix with rank 2
+
+PROPERTIES OF F:
+----------------
+1. F has 7 degrees of freedom (9 elements - 1 scale - 1 rank constraint)
+2. det(F) = 0 (rank 2 constraint)
+3. F encodes both intrinsic and extrinsic parameters implicitly
+
+
+********************************************************************************
+*                                                                              *
+*                    ★★★ MAIN DERIVATION SECTION ★★★                          *
+*                     (WRITE THIS ON YOUR PAPER)                               *
+*                                                                              *
+********************************************************************************
+
+================================================================================
+PART 3: ESTIMATING THE FUNDAMENTAL MATRIX  <<<< KEY DERIVATION 1
+================================================================================
+
+STEP 1: Feature Detection and Matching
+---------------------------------------
+- Detect SIFT/SURF/ORB keypoints in both images
+- Match corresponding points between left and right images
+- Need at least 8 point correspondences
+
+────────────────────────────────────────────────────────────────────────────────
+★ DERIVATION: 8-Point Algorithm for F Estimation ★
+────────────────────────────────────────────────────────────────────────────────
+
+Given n ≥ 8 point correspondences {(xᵢ, x'ᵢ)}, we solve:
+
+▶ STARTING EQUATION (Epipolar Constraint):
+┌─────────────────────────────────────────┐
+│           x'ᵀ F x = 0                   │  ← This is the fundamental equation
+└─────────────────────────────────────────┘
+
+▶ EXPANDING THE MATRIX MULTIPLICATION:
+
+    [u'  v'  1] [f₁₁ f₁₂ f₁₃] [u]
+                [f₂₁ f₂₂ f₂₃] [v]  = 0
+                [f₃₁ f₃₂ f₃₃] [1]
+
+▶ MULTIPLYING OUT (this is the key step):
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ u'u·f₁₁ + u'v·f₁₂ + u'·f₁₃ + v'u·f₂₁ + v'v·f₂₂ + v'·f₂₃ + u·f₃₁ + v·f₃₂ + f₃₃ = 0 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+▶ FOR n POINT CORRESPONDENCES, we get a LINEAR SYSTEM:
+┌─────────────────────────────────────────┐
+│              A · f = 0                  │
+└─────────────────────────────────────────┘
+
+Where matrix A (n × 9) is:
+
+    A = [u₁'u₁  u₁'v₁  u₁'  v₁'u₁  v₁'v₁  v₁'  u₁  v₁  1]   ← row for point 1
+        [u₂'u₂  u₂'v₂  u₂'  v₂'u₂  v₂'v₂  v₂'  u₂  v₂  1]   ← row for point 2
+        [  ...                    ...                    ]
+        [uₙ'uₙ  uₙ'vₙ  uₙ'  vₙ'uₙ  vₙ'vₙ  vₙ'  uₙ  vₙ  1]   ← row for point n
+
+And vector f (9 × 1) contains the unknown elements of F:
+
+    f = [f₁₁  f₁₂  f₁₃  f₂₁  f₂₂  f₂₃  f₃₁  f₃₂  f₃₃]ᵀ
+
+▶ SOLUTION using Singular Value Decomposition (SVD):
+┌─────────────────────────────────────────────────────────────────┐
+│  A = UΣVᵀ                                                       │
+│  f = last column of V (corresponding to smallest singular value)│
+└─────────────────────────────────────────────────────────────────┘
+
+▶ ENFORCE RANK-2 CONSTRAINT:
+┌─────────────────────────────────────────────────────────────────┐
+│  F = UΣVᵀ  (compute SVD of F)                                   │
+│  Σ' = diag(σ₁, σ₂, 0)  ← set smallest singular value to 0      │
+│  F_corrected = UΣ'Vᵀ                                            │
+└─────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+PART 4: ESSENTIAL MATRIX AND CAMERA POSE RECOVERY  <<<< KEY DERIVATION 2
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+★ DERIVATION: From Fundamental Matrix to Essential Matrix ★
+────────────────────────────────────────────────────────────────────────────────
+
+▶ KEY RELATIONSHIP:
+┌─────────────────────────────────────────┐
+│           E = Kᵀ F K                    │
+└─────────────────────────────────────────┘
+
+Where K is the intrinsic camera matrix (estimated for uncalibrated case):
+
+         ┌           ┐
+         │ f   0   cₓ│     f = focal length ≈ max(Width, Height)
+    K =  │ 0   f   cᵧ│     cₓ = Width/2  (principal point x)
+         │ 0   0   1 │     cᵧ = Height/2 (principal point y)
+         └           ┘
+
+────────────────────────────────────────────────────────────────────────────────
+★ DERIVATION: Decomposing E to get Rotation R and Translation t ★
+────────────────────────────────────────────────────────────────────────────────
+
+▶ ESSENTIAL MATRIX DECOMPOSITION:
+┌─────────────────────────────────────────┐
+│           E = [t]ₓ R                    │
+└─────────────────────────────────────────┘
+
+Where [t]ₓ is the skew-symmetric matrix of translation:
+
+         ┌              ┐
+         │  0   -t₃   t₂│
+  [t]ₓ = │  t₃   0  -t₁│
+         │ -t₂   t₁   0 │
+         └              ┘
+
+▶ USING SVD OF E:  E = UΣVᵀ
+
+▶ ROTATION MATRIX (two possible solutions):
+┌─────────────────────────────────────────────────────────────────┐
+│  R = U Wᵀ Vᵀ     OR     R = U W Vᵀ                              │
+└─────────────────────────────────────────────────────────────────┘
+
+▶ TRANSLATION (from skew-symmetric):
+┌─────────────────────────────────────────┐
+│         [t]ₓ = U Z Uᵀ                   │
+└─────────────────────────────────────────┘
+
+Where W and Z are special matrices:
+
+         ┌         ┐              ┌          ┐
+         │ 0  -1  0│              │  0   1  0│
+    W =  │ 1   0  0│         Z =  │ -1   0  0│
+         │ 0   0  1│              │  0   0  0│
+         └         ┘              └          ┘
+
+
+================================================================================
+PART 5: TRIANGULATION FOR DEPTH ESTIMATION  <<<< KEY DERIVATION 3
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+★ DERIVATION: Finding 3D Point X from 2D correspondences ★
+────────────────────────────────────────────────────────────────────────────────
+
+Given:
+- Point x = (u, v) in left image
+- Corresponding point x' = (u', v') in right image
+- Projection matrices P = K[I|0] and P' = K[R|t]
+
+▶ PROJECTION EQUATIONS:
+┌─────────────────────────────────────────┐
+│      x = PX      and      x' = P'X     │
+└─────────────────────────────────────────┘
+
+▶ EXPANDING (for 3D point X = [X, Y, Z, 1]ᵀ):
+
+From left image:
+    u = (p₁ᵀX)/(p₃ᵀX)  →  u(p₃ᵀX) - p₁ᵀX = 0
+    v = (p₂ᵀX)/(p₃ᵀX)  →  v(p₃ᵀX) - p₂ᵀX = 0
+
+From right image:
+    u' = (p'₁ᵀX)/(p'₃ᵀX)  →  u'(p'₃ᵀX) - p'₁ᵀX = 0
+    v' = (p'₂ᵀX)/(p'₃ᵀX)  →  v'(p'₃ᵀX) - p'₂ᵀX = 0
+
+▶ LINEAR SYSTEM FOR TRIANGULATION:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│     ┌                    ┐                                      │
+│     │  u·p₃ᵀ  -  p₁ᵀ    │                                      │
+│     │  v·p₃ᵀ  -  p₂ᵀ    │  X  =  0                             │
+│     │  u'·p'₃ᵀ -  p'₁ᵀ  │                                      │
+│     │  v'·p'₃ᵀ -  p'₂ᵀ  │                                      │
+│     └                    ┘                                      │
+│                                                                 │
+│     This is a 4×4 system: A X = 0                               │
+│     Solve using SVD: X = last column of V                       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+▶ RESULT: 3D coordinates X = [X, Y, Z, 1]ᵀ (in homogeneous form)
+
+********************************************************************************
+*                      END OF MAIN DERIVATION SECTION                          *
+********************************************************************************
+
+
+================================================================================
+PART 6: SIZE ESTIMATION PROCEDURE (UNCALIBRATED)
+================================================================================
+
+STEP-BY-STEP PROCEDURE:
+-----------------------
+
+1. CAPTURE STEREO PAIR
+   - Take two images of the object from different viewpoints
+   - Ensure sufficient baseline (separation) between views
+   - Ensure overlap in the field of view
+
+2. FEATURE MATCHING
+   - Detect features (SIFT/SURF/ORB) in both images
+   - Match corresponding points
+   - Use RANSAC to remove outliers
+
+3. ESTIMATE FUNDAMENTAL MATRIX
+   - Use 8-point algorithm with matched points
+   - Apply RANSAC for robustness
+   - Enforce rank-2 constraint
+
+4. ESTIMATE INTRINSIC PARAMETERS (if unknown)
+   - Principal point: (W/2, H/2)
+   - Focal length: f ≈ max(W, H) or from EXIF data
+
+5. COMPUTE ESSENTIAL MATRIX
+   E = Kᵀ F K
+
+6. DECOMPOSE E FOR CAMERA POSE
+   - Extract R and t from E
+   - Choose correct solution from 4 possibilities using cheirality check
+
+7. TRIANGULATE OBJECT POINTS
+   - For each object corner/edge point, find correspondence
+   - Triangulate to get 3D coordinates
+
+8. COMPUTE OBJECT DIMENSIONS
+   - Calculate Euclidean distances between 3D points
+   
+   For RECTANGULAR objects:
+       Width = ||P₁ - P₂||  (distance between adjacent corners)
+       Height = ||P₁ - P₄|| (distance between other adjacent corners)
+   
+   For CIRCULAR objects:
+       Fit circle to edge points
+       Diameter = 2 × radius of fitted circle
+   
+   For POLYGONAL objects:
+       Edge_i = ||Pᵢ - Pᵢ₊₁|| for all edges
+
+
+********************************************************************************
+*                                                                              *
+*                ★★★ SIZE CALCULATION DERIVATION ★★★                          *
+*                     (IMPORTANT FOR YOUR PAPER)                               *
+*                                                                              *
+********************************************************************************
+
+================================================================================
+PART 7: MATHEMATICAL FORMULAS FOR SIZE CALCULATION  <<<< KEY DERIVATION 4
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+★ DERIVATION: 3D Distance Formula ★
+────────────────────────────────────────────────────────────────────────────────
+
+Given two triangulated 3D points:
+    P₁ = (X₁, Y₁, Z₁)
+    P₂ = (X₂, Y₂, Z₂)
+
+▶ EUCLIDEAN DISTANCE IN 3D:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Distance = √[(X₂-X₁)² + (Y₂-Y₁)² + (Z₂-Z₁)²]                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+▶ FOR RECTANGULAR OBJECTS:
+┌─────────────────────────────────────────────────────────────────┐
+│   Width  = √[(X₂-X₁)² + (Y₂-Y₁)² + (Z₂-Z₁)²]  (adjacent corners)│
+│   Height = √[(X₄-X₁)² + (Y₄-Y₁)² + (Z₄-Z₁)²]  (other corners)   │
+└─────────────────────────────────────────────────────────────────┘
+
+▶ FOR CIRCULAR OBJECTS:
+┌─────────────────────────────────────────────────────────────────┐
+│   Diameter = 2 × radius                                         │
+│   where radius is from circle fitting to edge points            │
+└─────────────────────────────────────────────────────────────────┘
+
+▶ FOR POLYGONAL OBJECTS:
+┌─────────────────────────────────────────────────────────────────┐
+│   Edge_i = ||Pᵢ - Pᵢ₊₁|| for each edge i = 1, 2, ..., n        │
+└─────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────
+★ CRITICAL: SCALE AMBIGUITY PROBLEM ★
+────────────────────────────────────────────────────────────────────────────────
+
+⚠️  In UNCALIBRATED stereo, there is an inherent SCALE AMBIGUITY!
+    The recovered 3D structure is correct UP TO AN UNKNOWN SCALE FACTOR.
+
+▶ WHY? Because without calibration:
+    - We don't know the actual baseline (distance between cameras)
+    - We only recover RELATIVE geometry, not ABSOLUTE measurements
+
+▶ SOLUTION - Use a REFERENCE OBJECT of KNOWN SIZE:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│   Step 1: Place a reference object (known size) in the scene   │
+│   Step 2: Measure its size in reconstructed 3D: S_measured     │
+│   Step 3: Get its actual real-world size: S_actual             │
+│   Step 4: Compute scale factor:                                 │
+│                                                                 │
+│           ┌─────────────────────────┐                           │
+│           │  λ = S_actual           │                           │
+│           │      ─────────          │                           │
+│           │      S_measured         │                           │
+│           └─────────────────────────┘                           │
+│                                                                 │
+│   Step 5: Apply to all measurements:                            │
+│                                                                 │
+│           ┌─────────────────────────────────────┐               │
+│           │  Real_Size = λ × Measured_Size      │               │
+│           └─────────────────────────────────────┘               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+********************************************************************************
+*                    END OF SIZE CALCULATION DERIVATION                        *
+********************************************************************************
+
+
+================================================================================
+PART 8: COMPLETE ALGORITHM PSEUDOCODE
+================================================================================
+
+ALGORITHM: Uncalibrated_Stereo_Size_Estimation
+
+INPUT: 
+    - Left image I_L
+    - Right image I_R
+    - Reference object actual size (optional, for absolute scale)
+
+OUTPUT:
+    - Object dimensions (width, height, diameter, or edge lengths)
+
+PROCEDURE:
+----------
+1.  features_L = DetectFeatures(I_L)  // SIFT, SURF, or ORB
+2.  features_R = DetectFeatures(I_R)
+3.  matches = MatchFeatures(features_L, features_R)
+4.  matches = RANSAC_FilterOutliers(matches)
+
+5.  F = Estimate_Fundamental_Matrix(matches)  // 8-point algorithm
+6.  F = Enforce_Rank2(F)  // SVD and set smallest singular value to 0
+
+7.  K = Estimate_Intrinsics(I_L)  // From image size or EXIF
+8.  E = K.T @ F @ K  // Essential matrix
+
+9.  R, t = Decompose_Essential(E)  // Get camera pose
+10. R, t = Cheirality_Check(R, t, matches)  // Select correct solution
+
+11. P1 = K @ [I | 0]  // Left camera projection matrix
+12. P2 = K @ [R | t]  // Right camera projection matrix
+
+13. FOR each object point correspondence (x_L, x_R):
+14.     X_3D = Triangulate(x_L, x_R, P1, P2)
+15.     object_points.append(X_3D)
+
+16. IF rectangular:
+17.     width = Distance(object_points[0], object_points[1])
+18.     height = Distance(object_points[0], object_points[3])
+19. ELSE IF circular:
+20.     center, radius = FitCircle(object_points)
+21.     diameter = 2 * radius
+22. ELSE:  // polygon
+23.     FOR i in range(len(object_points)):
+24.         edge[i] = Distance(object_points[i], object_points[(i+1) % n])
+
+25. IF reference_object_available:
+26.     scale = reference_actual_size / reference_measured_size
+27.     Apply scale to all dimensions
+
+28. RETURN dimensions
+
+
+================================================================================
+PART 9: KEY DIFFERENCES FROM CALIBRATED STEREO
+================================================================================
+
+| Aspect              | Calibrated Stereo      | Uncalibrated Stereo     |
+|---------------------|------------------------|-------------------------|
+| Camera parameters   | Known (from calib)     | Estimated or assumed    |
+| Baseline            | Known exactly          | Estimated up to scale   |
+| Depth formula       | Z = fB/d (direct)      | Triangulation needed    |
+| Scale               | Absolute (metric)      | Relative (needs ref)    |
+| Accuracy            | Higher                 | Lower                   |
+| Flexibility         | Needs calibration      | Works with any cameras  |
+| Computation         | Simpler                | More complex            |
+
+
+================================================================================
+PART 10: PRACTICAL CONSIDERATIONS
+================================================================================
+
+1. FEATURE MATCHING QUALITY
+   - More matches = better F estimation
+   - Use RANSAC to handle outliers
+   - Minimum 8 correspondences, recommended 50+
+
+2. BASELINE REQUIREMENTS
+   - Too small: poor depth resolution
+   - Too large: matching becomes difficult
+   - Optimal: 5-20% of distance to object
+
+3. SCALE RECOVERY
+   - Always include a reference object of known size
+   - Or use additional sensor (IMU, GPS, etc.)
+
+4. NUMERICAL STABILITY
+   - Normalize point coordinates before computing F
+   - Use Hartley normalization: mean = 0, std = √2
+
+5. DEGENERATE CONFIGURATIONS
+   - All points on a plane: F is not unique
+   - Solution: ensure 3D structure in scene
+
+
+================================================================================
+                              END OF DERIVATION
+================================================================================
+
+Author: Lourdu Gnana Harshith Dande
+Course: Computer Vision
+Topic: Uncalibrated Stereo Object Size Estimation
+
+================================================================================
+

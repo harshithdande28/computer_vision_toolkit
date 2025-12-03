@@ -124,6 +124,48 @@
       .instructions strong {
         color: #004aad;
       }
+
+      .video-section {
+        margin: 0 auto 25px auto;
+        max-width: 650px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .video-section h3 {
+        margin: 0 0 15px 0;
+        color: #004aad;
+        font-size: 18px;
+      }
+
+      .video-container {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #000;
+      }
+
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 8px;
+      }
+
+      .video-caption {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #666;
+        text-align: center;
+      }
     </style>
   </head>
 
@@ -133,6 +175,19 @@
     </header>
 
     <div style="text-align: center">
+      <!-- Video Demo Section -->
+      <div class="video-section">
+        <h3>🎬 Watch: Template Matching Demo</h3>
+        <div class="video-container">
+          <iframe 
+            src="https://drive.google.com/file/d/1NFb1STJdXyekUS0HTFgA-qmnPpZXy87F/preview" 
+            allow="autoplay; encrypted-media" 
+            allowfullscreen>
+          </iframe>
+        </div>
+        <p class="video-caption">Watch this demonstration to understand how template matching works</p>
+      </div>
+
       <div class="instructions">
         <strong>🔍 What this experiment does:</strong><br>
         Template matching finds and locates a smaller template image within a larger scene image.<br><br>

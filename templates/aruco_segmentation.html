@@ -272,6 +272,50 @@
         color: #666;
         font-size: 16px;
       }
+      .video-section {
+        margin: 25px auto;
+        max-width: 700px;
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .video-section h3 {
+        margin: 0 0 15px 0;
+        color: #004aad;
+        font-size: 18px;
+      }
+      .video-container {
+        position: relative;
+        width: 100%;
+        padding-bottom: 56.25%;
+        height: 0;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #000;
+      }
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 8px;
+      }
+      .video-caption {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #666;
+        text-align: center;
+      }
+      .video-tip {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        font-style: italic;
+      }
     </style>
   </head>
 
@@ -280,6 +324,20 @@
       <h1>🎯 ArUco-Based Non-Rectangular Object Segmentation</h1>
       <p>Boundary detection using ArUco markers placed on object edges</p>
     </header>
+
+    <!-- Video Demo Section -->
+    <div class="video-section">
+      <h3>🎬 Watch: ArUco Segmentation Demo</h3>
+      <div class="video-container">
+        <iframe 
+          src="https://drive.google.com/file/d/19rpilVQ7W9xtoExKMHlyX7IzBWFoJp7j/preview" 
+          allow="autoplay; encrypted-media" 
+          allowfullscreen>
+        </iframe>
+      </div>
+      <p class="video-caption">Watch this demonstration to understand how ArUco-based segmentation works</p>
+      <p class="video-tip">⏩ Tip: If the video is long, feel free to skip to the end to see the final results</p>
+    </div>
 
     <div class="container">
       <div class="upload-section">

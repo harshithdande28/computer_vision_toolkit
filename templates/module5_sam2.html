@@ -124,6 +124,50 @@
             background: #004aad;
             color: white;
         }
+        .video-section {
+            margin: 20px auto;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .video-section h3 {
+            margin: 0 0 15px 0;
+            color: #004aad;
+            font-size: 18px;
+        }
+        .demo-video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #000;
+        }
+        .demo-video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .video-caption {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+        }
+        .video-tip {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+            font-style: italic;
+        }
     </style>
 </head>
 
@@ -132,6 +176,19 @@
 <header>🧠 SAM2 Segmentation Tracking</header>
 
 <div class="container">
+    <!-- Video Demo Section -->
+    <div class="video-section">
+        <h3>🎬 Watch: SAM2 Segmentation Tracking Demo</h3>
+        <div class="demo-video-container">
+            <iframe 
+                src="https://drive.google.com/file/d/1i9eELKMu1E7arkcQoSlFmSATBxqVaYuP/preview" 
+                allow="autoplay; encrypted-media" 
+                allowfullscreen>
+            </iframe>
+        </div>
+        <p class="video-caption">Watch this demonstration to understand how SAM2 segmentation tracking works</p>
+        <p class="video-tip">⏩ Tip: If the video is long, feel free to skip to the end to see the final results</p>
+    </div>
 
     <!-- STEP 1: Load Video Frame and Select ROI -->
     <div class="step-box">
@@ -155,6 +212,12 @@
     <div class="step-box">
         <h2>Step 2: Generate Segmentation Masks</h2>
         <p class="instructions">After selecting the ROI, click to generate masks for the entire video.</p>
+        
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 15px; margin: 15px 0; text-align: left;">
+            <strong>⏱️ Processing Time Notice:</strong><br>
+            Mask generation takes approximately <strong>10-15 minutes</strong> as it uses CPU processing.<br>
+            <span style="font-size: 13px; color: #666;">Please be patient and do not close this page during generation.</span>
+        </div>
         
         <button id="generateBtn" class="btn-generate" onclick="generateMasks()" disabled>
             🎯 Generate Masks
