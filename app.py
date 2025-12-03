@@ -1406,15 +1406,40 @@ def process_stereo_size():
     global stereo_left, stereo_right, stereo_calib, stereo_roi
 
     if stereo_left is None:
-        return "Please upload images first."
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: Please upload images first.")
+
+    if stereo_calib is None:
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: Please upload calibration file first.")
+
+    if "Q" not in stereo_calib:
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: Q matrix missing from calibration file. Please re-run stereo calibration.")
 
     Q = stereo_calib["Q"]
-    if Q is None:
-        return "Q matrix missing from calibration file"
 
+    if stereo_roi is None:
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: Please draw an ROI on the image first.")
 
-    # Compute disparity
-    stereo = cv.StereoSGBM_create(minDisparity=0, numDisparities=64, blockSize=7)
+    # Compute disparity with better parameters for various image sizes
+    img_height, img_width = stereo_left.shape[:2]
+    num_disparities = max(16, (img_width // 8) // 16 * 16)  # Must be divisible by 16
+    num_disparities = min(num_disparities, 256)  # Cap at reasonable max
+    
+    stereo = cv.StereoSGBM_create(
+        minDisparity=0, 
+        numDisparities=num_disparities, 
+        blockSize=7,
+        P1=8 * 3 * 7 ** 2,
+        P2=32 * 3 * 7 ** 2,
+        disp12MaxDiff=1,
+        uniquenessRatio=10,
+        speckleWindowSize=100,
+        speckleRange=32
+    )
+    
     disp = stereo.compute(
         cv.cvtColor(stereo_left, cv.COLOR_BGR2GRAY),
         cv.cvtColor(stereo_right, cv.COLOR_BGR2GRAY)
@@ -1422,16 +1447,31 @@ def process_stereo_size():
 
     points_3D = cv.reprojectImageTo3D(disp, Q)
 
-    # Extract ROI
-    x = int(stereo_roi["x"])
-    y = int(stereo_roi["y"])
+    # Extract ROI - ensure coordinates are within bounds
+    x = max(0, int(stereo_roi["x"]))
+    y = max(0, int(stereo_roi["y"]))
     w = int(stereo_roi["w"])
     h = int(stereo_roi["h"])
+    
+    # Clamp to image bounds
+    x = min(x, img_width - 1)
+    y = min(y, img_height - 1)
+    w = min(w, img_width - x)
+    h = min(h, img_height - y)
+    
+    if w <= 0 or h <= 0:
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: Invalid ROI. Please draw a valid rectangle.")
 
     roi_pts = points_3D[y:y+h, x:x+w].reshape(-1, 3)
 
-    # Remove invalid depths
+    # Remove invalid depths (inf, nan, and extreme values)
     roi_pts = roi_pts[np.isfinite(roi_pts).all(axis=1)]
+    roi_pts = roi_pts[np.abs(roi_pts[:, 2]) < 100]  # Filter extreme depths (>100m)
+    
+    if len(roi_pts) == 0:
+        return render_template("stereo_size_estimation.html", 
+                               dims="❌ Error: No valid depth points in ROI. Try selecting a different area with better texture.")
 
     # Compute bounding box in 3D
     min_xyz = roi_pts.min(axis=0)
@@ -1441,12 +1481,13 @@ def process_stereo_size():
 
     # disparity viz
     disp_vis = cv.normalize(disp, None, 0, 255, cv.NORM_MINMAX).astype(np.uint8)
-    _, buf = cv.imencode(".png", disp_vis)
+    disp_color = cv.applyColorMap(disp_vis, cv.COLORMAP_JET)
+    _, buf = cv.imencode(".png", disp_color)
     disparity_b64 = base64.b64encode(buf).decode("utf-8")
 
     return render_template(
         "stereo_size_estimation.html",
-        dims=f"Width={width:.3f}m, Height={height:.3f}m, Depth={depth:.3f}m",
+        dims=f"✅ Width={abs(width)*100:.2f}cm, Height={abs(height)*100:.2f}cm, Depth={abs(depth)*100:.2f}cm",
         disparity_b64=disparity_b64
     )
 
@@ -1466,13 +1507,44 @@ def stereo_preview():
     stereo_right = cv.imdecode(
         np.frombuffer(request.files["right"].read(), np.uint8), cv.IMREAD_COLOR)
 
-    stereo_calib = np.load(request.files["calib"])
+    if stereo_left is None or stereo_right is None:
+        return render_template("stereo_size_estimation.html", 
+                               error_msg="❌ Error: Could not read one or both images.")
 
-    # Convert left image to base64 to display in canvas
-    _, buf = cv.imencode(".png", stereo_left)
+    # Resize images to match if they have different sizes
+    left_h, left_w = stereo_left.shape[:2]
+    right_h, right_w = stereo_right.shape[:2]
+    
+    if (left_w, left_h) != (right_w, right_h):
+        # Resize right image to match left image
+        stereo_right = cv.resize(stereo_right, (left_w, left_h))
+        print(f"⚠️ Resized right image from {right_w}x{right_h} to {left_w}x{left_h}")
+
+    # Load calibration data into memory (not just the file handle)
+    calib_file = request.files["calib"]
+    calib_data = np.load(calib_file)
+    # Extract all arrays into a dictionary so we don't depend on the file staying open
+    stereo_calib = {key: calib_data[key] for key in calib_data.files}
+    calib_data.close()
+
+    # Scale image for display (max 800px width for easier ROI selection)
+    display_max_width = 800
+    scale = 1.0
+    if left_w > display_max_width:
+        scale = display_max_width / left_w
+        display_img = cv.resize(stereo_left, (display_max_width, int(left_h * scale)))
+    else:
+        display_img = stereo_left.copy()
+
+    # Convert display image to base64
+    _, buf = cv.imencode(".png", display_img)
     left_b64 = base64.b64encode(buf).decode("utf-8")
 
-    return render_template("stereo_size_estimation.html", left_b64=left_b64)
+    return render_template("stereo_size_estimation.html", 
+                           left_b64=left_b64, 
+                           scale=scale,
+                           original_w=left_w,
+                           original_h=left_h)
 
 @app.route("/set_stereo_roi", methods=["POST"])
 def set_stereo_roi():
@@ -1480,6 +1552,177 @@ def set_stereo_roi():
     stereo_roi = request.get_json()
     print("Stereo ROI:", stereo_roi)
     return {"status": "ok"}
+
+
+@app.route("/process_stereo_points", methods=["POST"])
+def process_stereo_points():
+    """
+    Process clicked points for calibrated stereo size estimation.
+    Supports: rectangle (4 corners), circle (3+ edge points), polygon (N vertices)
+    """
+    global stereo_left, stereo_right, stereo_calib
+    
+    if stereo_left is None or stereo_right is None:
+        return jsonify({"error": "Please upload stereo images first."})
+    
+    if stereo_calib is None:
+        return jsonify({"error": "Please upload calibration file first."})
+    
+    if "Q" not in stereo_calib:
+        return jsonify({"error": "Q matrix missing from calibration file."})
+    
+    data = request.get_json()
+    shape = data.get("shape", "rectangle")
+    points = data.get("points", [])
+    
+    if len(points) < 3:
+        return jsonify({"error": "Need at least 3 points."})
+    
+    if shape == "rectangle" and len(points) != 4:
+        return jsonify({"error": "Rectangle requires exactly 4 corners."})
+    
+    # Get calibration data
+    Q = stereo_calib["Q"]
+    
+    # Compute disparity map
+    img_height, img_width = stereo_left.shape[:2]
+    num_disparities = max(16, (img_width // 8) // 16 * 16)
+    num_disparities = min(num_disparities, 256)
+    
+    stereo_matcher = cv.StereoSGBM_create(
+        minDisparity=0,
+        numDisparities=num_disparities,
+        blockSize=5,
+        P1=8 * 3 * 5 ** 2,
+        P2=32 * 3 * 5 ** 2,
+        disp12MaxDiff=1,
+        uniquenessRatio=10,
+        speckleWindowSize=100,
+        speckleRange=32
+    )
+    
+    gray_left = cv.cvtColor(stereo_left, cv.COLOR_BGR2GRAY)
+    gray_right = cv.cvtColor(stereo_right, cv.COLOR_BGR2GRAY)
+    
+    disparity = stereo_matcher.compute(gray_left, gray_right).astype(np.float32) / 16.0
+    
+    # Reproject to 3D
+    points_3D_map = cv.reprojectImageTo3D(disparity, Q)
+    
+    # Get 3D coordinates for each clicked point
+    points_3D = []
+    depths = []
+    
+    for pt in points:
+        x = int(round(pt["x"]))
+        y = int(round(pt["y"]))
+        
+        # Clamp to image bounds
+        x = max(0, min(x, img_width - 1))
+        y = max(0, min(y, img_height - 1))
+        
+        # Get 3D point - use a small window average for robustness
+        window_size = 5
+        x_start = max(0, x - window_size)
+        x_end = min(img_width, x + window_size + 1)
+        y_start = max(0, y - window_size)
+        y_end = min(img_height, y + window_size + 1)
+        
+        window_pts = points_3D_map[y_start:y_end, x_start:x_end].reshape(-1, 3)
+        
+        # Filter valid points
+        valid_mask = np.isfinite(window_pts).all(axis=1)
+        valid_mask &= np.abs(window_pts[:, 2]) < 1000  # Filter extreme depths
+        valid_mask &= window_pts[:, 2] > 0  # Positive depth only
+        
+        valid_pts = window_pts[valid_mask]
+        
+        if len(valid_pts) > 0:
+            # Use median for robustness
+            pt_3d = np.median(valid_pts, axis=0)
+        else:
+            # Fallback to single point
+            pt_3d = points_3D_map[y, x]
+        
+        points_3D.append(pt_3d)
+        depths.append(float(abs(pt_3d[2]) * 100))  # Convert to cm and Python float
+    
+    points_3D = np.array(points_3D)
+    
+    # Calculate dimensions based on shape
+    result = {
+        "shape": shape,
+        "depths": depths  # Already converted to Python floats above
+    }
+    
+    if shape == "rectangle":
+        # Calculate width and height from 4 corners
+        # Assume corners are in order (clockwise or counter-clockwise)
+        p0, p1, p2, p3 = points_3D[:4]
+        
+        # Width: distance between adjacent corners (p0-p1 or p2-p3)
+        width1 = float(np.linalg.norm(p1 - p0) * 100)  # cm
+        width2 = float(np.linalg.norm(p3 - p2) * 100)
+        width = (width1 + width2) / 2
+        
+        # Height: distance between other adjacent corners (p1-p2 or p0-p3)
+        height1 = float(np.linalg.norm(p2 - p1) * 100)
+        height2 = float(np.linalg.norm(p0 - p3) * 100)
+        height = (height1 + height2) / 2
+        
+        # Diagonal
+        diag1 = float(np.linalg.norm(p2 - p0) * 100)
+        diag2 = float(np.linalg.norm(p3 - p1) * 100)
+        diagonal = (diag1 + diag2) / 2
+        
+        result["width"] = float(width)
+        result["height"] = float(height)
+        result["diagonal"] = float(diagonal)
+        
+    elif shape == "circle":
+        # Fit circle to 3D points and get diameter
+        # Project to plane perpendicular to average viewing direction
+        center = np.mean(points_3D, axis=0)
+        
+        # Calculate radius as average distance from center
+        radii = [float(np.linalg.norm(p - center)) for p in points_3D]
+        radius = float(np.mean(radii) * 100)  # cm
+        diameter = float(2 * radius)
+        circumference = float(2 * np.pi * radius)
+        
+        result["diameter"] = diameter
+        result["radius"] = radius
+        result["circumference"] = circumference
+        
+    elif shape == "polygon":
+        # Calculate all edge lengths
+        edges = []
+        n = len(points_3D)
+        for i in range(n):
+            edge_length = float(np.linalg.norm(points_3D[(i + 1) % n] - points_3D[i]) * 100)
+            edges.append(edge_length)
+        
+        perimeter = float(sum(edges))
+        
+        result["edges"] = edges
+        result["perimeter"] = perimeter
+    
+    # Generate disparity visualization
+    disp_vis = cv.normalize(disparity, None, 0, 255, cv.NORM_MINMAX).astype(np.uint8)
+    disp_color = cv.applyColorMap(disp_vis, cv.COLORMAP_JET)
+    
+    # Draw clicked points on disparity map
+    for i, pt in enumerate(points):
+        x = int(round(pt["x"]))
+        y = int(round(pt["y"]))
+        cv.circle(disp_color, (x, y), 10, (255, 255, 255), 2)
+        cv.putText(disp_color, str(i + 1), (x - 5, y + 5), 
+                   cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    
+    _, buf = cv.imencode(".png", disp_color)
+    result["disparity_b64"] = base64.b64encode(buf).decode("utf-8")
+    
+    return jsonify(result)
 
 
 # ==============================================================

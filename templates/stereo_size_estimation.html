@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stereo Size Estimation</title>
+    <title>Stereo Size Estimation (Calibrated)</title>
 
     <style>
       body {
@@ -22,8 +22,8 @@
       }
 
       .card {
-        margin: 40px auto;
-        width: 60%;
+        margin: 30px auto;
+        width: 70%;
         background: white;
         padding: 25px;
         border-radius: 15px;
@@ -41,7 +41,7 @@
 
       button {
         padding: 12px 25px;
-        margin-top: 20px;
+        margin: 10px 5px;
         font-size: 17px;
         background: #007bff;
         color: white;
@@ -56,18 +56,30 @@
         transform: scale(1.05);
       }
 
-      hr {
-        margin: 40px auto;
-        width: 70%;
-        border: 1px solid #ddd;
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
       }
 
-      #canvas {
-        border: 3px solid #004aad;
-        border-radius: 10px;
-        margin-top: 15px;
-        cursor: crosshair;
-        max-width: 90%;
+      .btn-danger {
+        background: #dc3545;
+      }
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .btn-success {
+        background: #28a745;
+      }
+      .btn-success:hover {
+        background: #218838;
+      }
+
+      hr {
+        margin: 30px auto;
+        width: 70%;
+        border: 1px solid #ddd;
       }
 
       img {
@@ -80,7 +92,7 @@
       .result-box {
         margin: 30px auto;
         background: #ffffff;
-        width: 60%;
+        width: 70%;
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -94,7 +106,7 @@
 
       .instructions {
         margin: 20px auto;
-        max-width: 650px;
+        max-width: 750px;
         font-size: 14px;
         color: #555;
         line-height: 1.7;
@@ -107,129 +119,89 @@
       .instructions strong {
         color: #004aad;
       }
-    </style>
-  </head>
 
-  <body>
-    <header>Stereo Object Size Estimation (ROI-Based)</header>
-
-    <div class="instructions">
-      <strong>📐 What this experiment does:</strong><br>
-      Estimates the real-world size (width × height) of an object using stereo vision and disparity mapping.<br><br>
-      <strong>📋 How to use:</strong><br>
-      1. Upload a LEFT stereo image and a RIGHT stereo image (taken simultaneously)<br>
-      2. Upload the stereo calibration file (.npz) generated from Stereo Calibration<br>
-      3. Draw a rectangle (ROI) around the object you want to measure<br>
-      4. View the estimated real-world dimensions of the object
-    </div>
-
-    <div class="card">
-      <h2>Upload Stereo Pair + Calibration File</h2>
-
-      <form
-        id="uploadForm"
-        method="POST"
-        enctype="multipart/form-data"
-        action="{{ url_for('stereo_preview') }}"
-      >
-        <p><strong>LEFT Stereo Image:</strong></p>
-        <label>
-          <input type="file" name="left" required />
-        </label>
-
-        <p><strong>RIGHT Stereo Image:</strong></p>
-        <input type="file" name="right" required />
-
-        <p><strong>Stereo Calibration File (.npz):</strong></p>
-        <input type="file" name="calib" required />
-
-        <br />
-        <button type="submit">📤 Preview & Select ROI</button>
-      </form>
-    </div>
-
-    {% if left_b64 %}
-    <hr />
-    <h2>Draw ROI on LEFT Image</h2>
-
-    <canvas id="canvas"></canvas>
-
-    <br />
-    <button onclick="sendROI()">📏 Estimate Size</button>
-
-    <script>
-      let img = new Image();
-      img.src = "data:image/png;base64,{{ left_b64 }}";
-
-      let canvas = document.getElementById("canvas");
-      let ctx = canvas.getContext("2d");
-
-      img.onload = function () {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-      };
-
-      let startX, startY, endX, endY;
-      let drawing = false;
-
-      canvas.onmousedown = function (e) {
-        drawing = true;
-        startX = e.offsetX;
-        startY = e.offsetY;
-      };
-
-      canvas.onmousemove = function (e) {
-        if (!drawing) return;
-        endX = e.offsetX;
-        endY = e.offsetY;
-
-        ctx.drawImage(img, 0, 0);
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(startX, startY, endX - startX, endY - startY);
-      };
-
-      canvas.onmouseup = function () {
-        drawing = false;
-      };
-
-      function sendROI() {
-        fetch("/set_stereo_roi", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            x: startX,
-            y: startY,
-            w: endX - startX,
-            h: endY - startY,
-            canvas_w: canvas.width,
-            canvas_h: canvas.height,
-          }),
-        }).then(() => {
-          window.location.href = "/process_stereo_size";
-        });
+      .shape-selector {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin: 20px 0;
       }
-    </script>
-    {% endif %} {% if dims %}
-    <hr />
 
-    <div class="result-box">
-      <h2>Estimated Object Dimensions</h2>
-      <p class="dims-text">{{ dims }}</p>
+      .shape-btn {
+        padding: 15px 30px;
+        font-size: 16px;
+        border: 3px solid #004aad;
+        background: white;
+        color: #004aad;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
 
-      <h3>Disparity Map</h3>
-      <img
-        src="data:image/png;base64,{{ disparity_b64 }}"
-        alt="Stereo disparity depth visualization"
-      />
-    </div>
+      .shape-btn:hover, .shape-btn.active {
+        background: #004aad;
+        color: white;
+      }
 
-    {% endif %}
+      .canvas-container {
+        display: inline-block;
+        position: relative;
+        border: 3px solid #004aad;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 15px 0;
+      }
 
-    <a href="/" class="back-home">← Back to Home</a>
+      #canvas {
+        display: block;
+        cursor: crosshair;
+      }
 
-    <style>
+      .point-info {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px auto;
+        max-width: 600px;
+        text-align: left;
+      }
+
+      .point-list {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+      }
+
+      .point-list li {
+        padding: 5px 10px;
+        margin: 5px 0;
+        background: #e8f4fd;
+        border-radius: 5px;
+        font-family: monospace;
+      }
+
+      .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+
+      .result-table th, .result-table td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        text-align: center;
+      }
+
+      .result-table th {
+        background: #004aad;
+        color: white;
+      }
+
+      .result-table tr:nth-child(even) {
+        background: #f8f9fa;
+      }
+
       .back-home {
         display: inline-block;
         margin: 30px auto;
@@ -247,5 +219,338 @@
         color: white;
       }
     </style>
+  </head>
+
+  <body>
+    <header>Calibrated Stereo Object Size Estimation</header>
+
+    <div class="instructions">
+      <strong>📐 What this experiment does:</strong><br>
+      Estimates the real-world size of objects using CALIBRATED STEREO vision. First computes the depth (Z) of each point, then calculates actual dimensions.<br><br>
+      <strong>📋 Supported Shapes:</strong><br>
+      • <strong>Rectangular:</strong> Click 4 corners → Get width and height<br>
+      • <strong>Circular:</strong> Click 3+ points on the edge → Get diameter<br>
+      • <strong>Polygon:</strong> Click all vertices → Get all edge lengths<br><br>
+      <strong>📋 How to use:</strong><br>
+      1. Upload LEFT and RIGHT stereo images (taken simultaneously with calibrated cameras)<br>
+      2. Upload the stereo calibration file (.npz)<br>
+      3. Select the shape type<br>
+      4. Click on the object points in the LEFT image<br>
+      5. Click "Estimate Size" to get real-world measurements
+    </div>
+
+    <div class="card">
+      <h2>Step 1: Upload Stereo Pair + Calibration File</h2>
+
+      <form id="uploadForm" method="POST" enctype="multipart/form-data" action="{{ url_for('stereo_preview') }}">
+        <p><strong>LEFT Stereo Image:</strong></p>
+        <input type="file" name="left" required />
+
+        <p><strong>RIGHT Stereo Image:</strong></p>
+        <input type="file" name="right" required />
+
+        <p><strong>Stereo Calibration File (.npz):</strong></p>
+        <input type="file" name="calib" required />
+
+        <br />
+        <button type="submit">📤 Load Images</button>
+      </form>
+    </div>
+
+    {% if left_b64 %}
+    <hr />
+    
+    <div class="card">
+      <h2>Step 2: Select Object Shape</h2>
+      <div class="shape-selector">
+        <button class="shape-btn active" onclick="setShape('rectangle')" id="btn-rectangle">📐 Rectangle (4 corners)</button>
+        <button class="shape-btn" onclick="setShape('circle')" id="btn-circle">⭕ Circle (3+ edge points)</button>
+        <button class="shape-btn" onclick="setShape('polygon')" id="btn-polygon">🔷 Polygon (N vertices)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Step 3: Click Points on LEFT Image</h2>
+      <p id="shapeInstructions" style="color: #666;">Click on the 4 corners of the rectangle (clockwise or counter-clockwise)</p>
+      
+      <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+      </div>
+
+      <div class="point-info">
+        <strong>Clicked Points:</strong> <span id="pointCount">0</span> / <span id="requiredPoints">4</span>
+        <ul class="point-list" id="pointList"></ul>
+      </div>
+
+      <button onclick="undoPoint()" class="btn-danger">↩️ Undo Last Point</button>
+      <button onclick="clearPoints()" class="btn-danger">🗑️ Clear All</button>
+      <button onclick="estimateSize()" class="btn-success" id="estimateBtn" disabled>📏 Estimate Size</button>
+    </div>
+
+    <script>
+      // Image and canvas setup
+      let img = new Image();
+      img.src = "data:image/png;base64,{{ left_b64 }}";
+
+      const scale = {{ scale if scale else 1.0 }};
+      const originalW = {{ original_w if original_w else 0 }};
+      const originalH = {{ original_h if original_h else 0 }};
+
+      let canvas = document.getElementById("canvas");
+      let ctx = canvas.getContext("2d");
+
+      // State
+      let currentShape = 'rectangle';
+      let points = [];
+      const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080'];
+
+      img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        redraw();
+      };
+
+      function setShape(shape) {
+        currentShape = shape;
+        points = [];
+        
+        // Update UI
+        document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('btn-' + shape).classList.add('active');
+        
+        // Update instructions
+        const instructions = {
+          'rectangle': 'Click on the 4 corners of the rectangle (clockwise or counter-clockwise)',
+          'circle': 'Click on 3 or more points along the edge of the circle',
+          'polygon': 'Click on all vertices of the polygon, then click Estimate Size'
+        };
+        const required = {
+          'rectangle': 4,
+          'circle': 3,
+          'polygon': 3
+        };
+        
+        document.getElementById('shapeInstructions').textContent = instructions[shape];
+        document.getElementById('requiredPoints').textContent = shape === 'polygon' ? 'N' : required[shape];
+        
+        updatePointsUI();
+        redraw();
+      }
+
+      canvas.onclick = function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // For rectangle, limit to 4 points
+        if (currentShape === 'rectangle' && points.length >= 4) {
+          alert('Rectangle requires exactly 4 corners. Click "Clear All" to start over.');
+          return;
+        }
+        
+        points.push({ x: x, y: y });
+        updatePointsUI();
+        redraw();
+      };
+
+      function redraw() {
+        ctx.drawImage(img, 0, 0);
+        
+        // Draw points
+        points.forEach((p, i) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 8, 0, 2 * Math.PI);
+          ctx.fillStyle = colors[i % colors.length];
+          ctx.fill();
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          
+          // Draw point number
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((i + 1).toString(), p.x, p.y);
+        });
+        
+        // Draw lines between points
+        if (points.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(points[0].x, points[0].y);
+          for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+          }
+          
+          // Close shape for rectangle and polygon
+          if ((currentShape === 'rectangle' && points.length === 4) || 
+              (currentShape === 'polygon' && points.length >= 3)) {
+            ctx.lineTo(points[0].x, points[0].y);
+          }
+          
+          ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        
+        // For circle, draw fitted circle if we have 3+ points
+        if (currentShape === 'circle' && points.length >= 3) {
+          const circle = fitCircle(points);
+          if (circle) {
+            ctx.beginPath();
+            ctx.arc(circle.cx, circle.cy, circle.r, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw center
+            ctx.beginPath();
+            ctx.arc(circle.cx, circle.cy, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = 'green';
+            ctx.fill();
+          }
+        }
+      }
+
+      function fitCircle(pts) {
+        // Simple circle fit using least squares
+        if (pts.length < 3) return null;
+        
+        let sumX = 0, sumY = 0;
+        pts.forEach(p => { sumX += p.x; sumY += p.y; });
+        const cx = sumX / pts.length;
+        const cy = sumY / pts.length;
+        
+        let sumR = 0;
+        pts.forEach(p => {
+          sumR += Math.sqrt((p.x - cx) ** 2 + (p.y - cy) ** 2);
+        });
+        const r = sumR / pts.length;
+        
+        return { cx, cy, r };
+      }
+
+      function updatePointsUI() {
+        document.getElementById('pointCount').textContent = points.length;
+        
+        const list = document.getElementById('pointList');
+        list.innerHTML = '';
+        points.forEach((p, i) => {
+          const li = document.createElement('li');
+          const realX = Math.round(p.x / scale);
+          const realY = Math.round(p.y / scale);
+          li.textContent = `Point ${i + 1}: (${realX}, ${realY})`;
+          li.style.borderLeft = `4px solid ${colors[i % colors.length]}`;
+          list.appendChild(li);
+        });
+        
+        // Enable/disable estimate button
+        const minPoints = currentShape === 'rectangle' ? 4 : 3;
+        const hasEnough = points.length >= minPoints;
+        document.getElementById('estimateBtn').disabled = !hasEnough;
+      }
+
+      function undoPoint() {
+        if (points.length > 0) {
+          points.pop();
+          updatePointsUI();
+          redraw();
+        }
+      }
+
+      function clearPoints() {
+        points = [];
+        updatePointsUI();
+        redraw();
+      }
+
+      function estimateSize() {
+        // Convert points to original image coordinates
+        const originalPoints = points.map(p => ({
+          x: p.x / scale,
+          y: p.y / scale
+        }));
+        
+        fetch("/process_stereo_points", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            shape: currentShape,
+            points: originalPoints
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            alert("Error: " + data.error);
+          } else {
+            // Display results
+            displayResults(data);
+          }
+        })
+        .catch(err => {
+          alert("Error: " + err);
+        });
+      }
+
+      function displayResults(data) {
+        let html = '<div class="result-box"><h2>📏 Measurement Results</h2>';
+        
+        html += '<h3>Depth (Z) Values</h3>';
+        html += '<table class="result-table"><tr><th>Point</th><th>Depth (Z)</th></tr>';
+        data.depths.forEach((d, i) => {
+          html += `<tr><td>Point ${i + 1}</td><td>${d.toFixed(2)} cm</td></tr>`;
+        });
+        html += '</table>';
+        
+        html += '<h3>Object Dimensions</h3>';
+        html += '<table class="result-table"><tr><th>Measurement</th><th>Value</th></tr>';
+        
+        if (data.shape === 'rectangle') {
+          html += `<tr><td>Width</td><td><strong>${data.width.toFixed(2)} cm</strong></td></tr>`;
+          html += `<tr><td>Height</td><td><strong>${data.height.toFixed(2)} cm</strong></td></tr>`;
+          html += `<tr><td>Diagonal</td><td>${data.diagonal.toFixed(2)} cm</td></tr>`;
+        } else if (data.shape === 'circle') {
+          html += `<tr><td>Diameter</td><td><strong>${data.diameter.toFixed(2)} cm</strong></td></tr>`;
+          html += `<tr><td>Radius</td><td>${data.radius.toFixed(2)} cm</td></tr>`;
+          html += `<tr><td>Circumference</td><td>${data.circumference.toFixed(2)} cm</td></tr>`;
+        } else if (data.shape === 'polygon') {
+          data.edges.forEach((e, i) => {
+            html += `<tr><td>Edge ${i + 1} (P${i + 1} → P${(i % data.edges.length) + 1 === data.edges.length ? 1 : i + 2})</td><td><strong>${e.toFixed(2)} cm</strong></td></tr>`;
+          });
+          html += `<tr><td>Perimeter</td><td>${data.perimeter.toFixed(2)} cm</td></tr>`;
+        }
+        
+        html += '</table>';
+        
+        if (data.disparity_b64) {
+          html += '<h3>Disparity Map</h3>';
+          html += `<img src="data:image/png;base64,${data.disparity_b64}" alt="Disparity Map" style="max-width: 100%;">`;
+        }
+        
+        html += '</div>';
+        
+        // Insert results after the canvas card
+        let resultsDiv = document.getElementById('resultsDiv');
+        if (!resultsDiv) {
+          resultsDiv = document.createElement('div');
+          resultsDiv.id = 'resultsDiv';
+          document.querySelector('.card:last-of-type').after(resultsDiv);
+        }
+        resultsDiv.innerHTML = html;
+        
+        // Scroll to results
+        resultsDiv.scrollIntoView({ behavior: 'smooth' });
+      }
+    </script>
+    {% endif %}
+
+    {% if error_msg %}
+    <div class="result-box" style="color: red;">
+      <h3>{{ error_msg }}</h3>
+    </div>
+    {% endif %}
+
+    <a href="/" class="back-home">← Back to Home</a>
   </body>
 </html>
